@@ -1,0 +1,46 @@
+{
+  "incident_id": "SFUMATO-2026-0101",
+  "timestamp": "2026-10-22T11:30:00Z",
+  "source": "EDR",
+  "severity": "high",
+  "alert": {
+    "name": "Encoded PowerShell on server",
+    "description": "PowerShell launched with an encoded command on a production file server",
+    "category": "execution"
+  },
+  "asset": {
+    "hostname": "SRV-FILE-01",
+    "ip": "10.10.4.21",
+    "criticality": "high",
+    "environment": "production",
+    "os": "Windows Server 2022"
+  },
+  "user": {
+    "username": "it.admin",
+    "domain": "sfumato-demo.local",
+    "is_admin": true
+  },
+  "process": {
+    "name": "powershell.exe",
+    "parent": "explorer.exe",
+    "command_line": "powershell.exe -NoProfile -EncodedCommand RwBlAHQALQBDAGgAaQBsAGQASQB0AGUAbQAgAFwAXABTAFIAVgAtAFAAQQBUAEMASAAtADAAMQBcAHAAYQB0AGMAaABlAHMAXAAyADAAMgA2AC0AMQAwAFwAKgAuAG0AcwBpACAAfAAgAEYAbwByAEUAYQBjAGgALQBPAGIAagBlAGMAdAAgAHsAIABTAHQAYQByAHQALQBQAHIAbwBjAGUAcwBzACAAbQBzAGkAZQB4AGUAYwAuAGUAeABlACAALQBBAHIAZwB1AG0AZQBuAHQATABpAHMAdAAgACcALwBpACcALAAgACQAXwAuAEYAdQBsAGwATgBhAG0AZQAsACAAJwAvAHEAbgAnACwAIAAnAC8AbgBvAHIAZQBzAHQAYQByAHQAJwAgAC0AVwBhAGkAdAAgAH0A",
+    "signer": "Microsoft Corporation",
+    "signed": true
+  },
+  "network": {
+    "destination_ip": "10.10.5.20",
+    "destination_port": 445,
+    "protocol": "SMB",
+    "direction": "outbound"
+  },
+  "indicators": [],
+  "metadata": {
+    "detection_rule": "Encoded PowerShell Command",
+    "confidence": 60,
+    "tags": [
+      "powershell",
+      "server"
+    ],
+    "change_ticket": "CHG-2026-1042"
+  }
+}

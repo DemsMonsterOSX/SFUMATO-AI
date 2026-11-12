@@ -1,0 +1,97 @@
+{
+  "_notice": "DEMONSTRATION FIXTURE \u2014 recorded-format responses for the reproducible demo mode. All indicators use RFC 5737 / RFC 2606 documentation values (203.0.113.0/24, *.test, *.example) and do not describe real infrastructure. Never presented as live intelligence.",
+  "provider": "urlhaus",
+  "entries": {
+    "url:http://203.0.113.66/stage2.ps1": {
+      "query_status": "ok",
+      "id": "800001",
+      "urlhaus_reference": "https://urlhaus.abuse.ch/url/800001/",
+      "url": "http://203.0.113.66/stage2.ps1",
+      "url_status": "online",
+      "host": "203.0.113.66",
+      "date_added": "2026-10-20 14:21:09 UTC",
+      "last_online": "2026-10-22 11:58:00 UTC",
+      "threat": "malware_download",
+      "blacklists": {
+        "spamhaus_dbl": "not listed",
+        "surbl": "not listed"
+      },
+      "reporter": "demo_fixture",
+      "larted": "true",
+      "takedown_time_seconds": null,
+      "tags": [
+        "ps1",
+        "CobaltStrike",
+        "demo"
+      ],
+      "payloads": [
+        {
+          "firstseen": "2026-10-20",
+          "filename": "stage2.ps1",
+          "file_type": "ps1",
+          "response_size": "4096",
+          "response_md5": "00000000000000000000000000000000",
+          "response_sha256": "0000000000000000000000000000000000000000000000000000000000000000",
+          "urlhaus_download": null,
+          "signature": "CobaltStrike",
+          "virustotal": null,
+          "imphash": null,
+          "ssdeep": null,
+          "tlsh": null,
+          "magika": "powershell"
+        }
+      ]
+    },
+    "ipv4:203.0.113.66": {
+      "query_status": "ok",
+      "urlhaus_reference": "https://urlhaus.abuse.ch/host/203.0.113.66/",
+      "host": "203.0.113.66",
+      "firstseen": "2026-10-20 14:21:09 UTC",
+      "url_count": "3",
+      "blacklists": {
+        "spamhaus_dbl": "not listed",
+        "surbl": "not listed"
+      },
+      "urls": [
+        {
+          "id": "800001",
+          "urlhaus_reference": "https://urlhaus.abuse.ch/url/800001/",
+          "url": "http://203.0.113.66/stage2.ps1",
+          "url_status": "online",
+          "date_added": "2026-10-20 14:21:09 UTC",
+          "threat": "malware_download",
+          "reporter": "demo_fixture",
+          "larted": "true",
+          "takedown_time_seconds": null,
+          "tags": [
+            "ps1",
+            "demo"
+          ]
+        }
+      ]
+    },
+    "domain:login-portal-verify.test": {
+      "query_status": "ok",
+      "urlhaus_reference": "https://urlhaus.abuse.ch/host/login-portal-verify.test/",
+      "host": "login-portal-verify.test",
+      "firstseen": "2026-10-15 09:40:00 UTC",
+      "url_count": "1",
+      "blacklists": {
+        "spamhaus_dbl": "abused_legit_malware",
+        "surbl": "not listed"
+      },
+      "urls": [
+        {
+          "id": "800002",
+          "url": "http://login-portal-verify.test:8081/gate.php",
+          "url_status": "online",
+          "date_added": "2026-10-15 09:40:00 UTC",
+          "threat": "malware_download",
+          "tags": [
+            "demo"
+          ]
+        }
+      ]
+    }
+  }
+}

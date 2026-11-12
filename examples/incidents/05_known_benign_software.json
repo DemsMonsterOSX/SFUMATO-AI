@@ -1,0 +1,39 @@
+{
+  "incident_id": "SFUMATO-2026-0105",
+  "timestamp": "2026-10-22T09:05:00Z",
+  "source": "EDR",
+  "severity": "medium",
+  "alert": {
+    "name": "Generic Archive Utility Execution",
+    "description": "Archive utility executed: possible data staging",
+    "category": "collection"
+  },
+  "asset": {
+    "hostname": "WORKSTATION-015",
+    "ip": "192.168.1.15",
+    "criticality": "low",
+    "environment": "corporate"
+  },
+  "user": {
+    "username": "a.dupont",
+    "domain": "sfumato-demo.local",
+    "department": "Marketing"
+  },
+  "process": {
+    "name": "7z.exe",
+    "parent": "explorer.exe",
+    "command_line": "\"C:\\Program Files\\7-Zip\\7z.exe\" x Q3_reports.zip -oC:\\Users\\a.dupont\\Documents\\Q3",
+    "path": "C:\\Program Files\\7-Zip\\7z.exe",
+    "signer": "Igor Pavlov",
+    "signed": true
+  },
+  "indicators": [],
+  "metadata": {
+    "detection_rule": "Generic Archive Utility Execution",
+    "confidence": 40,
+    "tags": [
+      "archive",
+      "collection"
+    ]
+  }
+}

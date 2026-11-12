@@ -1,0 +1,25 @@
+{
+  "incident_id": "SFUMATO-2026-0106",
+  "timestamp": "2026-10-22T14:20:00Z",
+  "source": "NDR",
+  "severity": "low",
+  "alert": {
+    "name": "Rare Domain Contacted",
+    "description": "A workstation resolved a domain never seen before in the organisation",
+    "category": "discovery"
+  },
+  "asset": {
+    "hostname": "WORKSTATION-117"
+  },
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "telemetry-sync.example"
+    }
+  ],
+  "metadata": {
+    "tags": [
+      "rare-domain"
+    ]
+  }
+}

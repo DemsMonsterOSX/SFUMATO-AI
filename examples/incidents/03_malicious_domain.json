@@ -1,0 +1,53 @@
+{
+  "incident_id": "SFUMATO-2026-0103",
+  "timestamp": "2026-10-22T02:14:00Z",
+  "source": "Proxy",
+  "severity": "high",
+  "alert": {
+    "name": "Connection to Known Malicious Domain",
+    "description": "rundll32.exe established periodic HTTP connections to an uncategorised domain",
+    "category": "command-and-control"
+  },
+  "asset": {
+    "hostname": "WORKSTATION-077",
+    "ip": "192.168.1.77",
+    "criticality": "medium",
+    "environment": "corporate"
+  },
+  "user": {
+    "username": "c.bernard",
+    "domain": "sfumato-demo.local"
+  },
+  "process": {
+    "name": "rundll32.exe",
+    "parent": "explorer.exe",
+    "command_line": "rundll32.exe C:\\Users\\c.bernard\\AppData\\Roaming\\libgcc.dll,DllRegisterServer"
+  },
+  "network": {
+    "destination_ip": "203.0.113.150",
+    "destination_port": 8081,
+    "protocol": "HTTP",
+    "destination_domain": "login-portal-verify.test",
+    "url": "http://login-portal-verify.test:8081/gate.php",
+    "direction": "outbound",
+    "bytes_out": 18432
+  },
+  "indicators": [
+    {
+      "type": "domain",
+      "value": "login-portal-verify.test"
+    },
+    {
+      "type": "url",
+      "value": "http://login-portal-verify.test:8081/gate.php"
+    }
+  ],
+  "metadata": {
+    "detection_rule": "Known Malicious Destination",
+    "confidence": 85,
+    "tags": [
+      "c2",
+      "beacon"
+    ]
+  }
+}

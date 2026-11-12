@@ -1,0 +1,430 @@
+{
+  "_notice": "DEMONSTRATION FIXTURE \u2014 recorded-format responses for the reproducible demo mode. All indicators use RFC 5737 / RFC 2606 documentation values (203.0.113.0/24, *.test, *.example) and do not describe real infrastructure. Never presented as live intelligence.",
+  "provider": "otx",
+  "entries": {
+    "domain:cdn-update-check.test": {
+      "pulse_info": {
+        "count": 3,
+        "pulses": [
+          {
+            "id": "demo000000000000000001",
+            "name": "DEMO \u2014 Cobalt Strike stagers via macro documents",
+            "tags": [
+              "cobaltstrike",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [
+              {
+                "id": "Cobalt Strike",
+                "display_name": "Cobalt Strike",
+                "target": null
+              }
+            ],
+            "attack_ids": [
+              {
+                "id": "T1059.001",
+                "name": "T1059.001",
+                "display_name": "T1059.001"
+              },
+              {
+                "id": "T1105",
+                "name": "T1105",
+                "display_name": "T1105"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000002",
+            "name": "DEMO \u2014 Finance-themed phishing wave",
+            "tags": [
+              "phishing",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [],
+            "attack_ids": [
+              {
+                "id": "T1566.001",
+                "name": "T1566.001",
+                "display_name": "T1566.001"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000003",
+            "name": "DEMO \u2014 Stager infrastructure Oct 2026",
+            "tags": [
+              "infrastructure",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [],
+            "attack_ids": [],
+            "references": []
+          }
+        ],
+        "references": []
+      },
+      "validation": []
+    },
+    "ipv4:203.0.113.66": {
+      "pulse_info": {
+        "count": 2,
+        "pulses": [
+          {
+            "id": "demo000000000000000001",
+            "name": "DEMO \u2014 Cobalt Strike stagers via macro documents",
+            "tags": [
+              "cobaltstrike",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [
+              {
+                "id": "Cobalt Strike",
+                "display_name": "Cobalt Strike",
+                "target": null
+              }
+            ],
+            "attack_ids": [
+              {
+                "id": "T1059.001",
+                "name": "T1059.001",
+                "display_name": "T1059.001"
+              },
+              {
+                "id": "T1105",
+                "name": "T1105",
+                "display_name": "T1105"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000003",
+            "name": "DEMO \u2014 Stager infrastructure Oct 2026",
+            "tags": [
+              "infrastructure",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [],
+            "attack_ids": [],
+            "references": []
+          }
+        ],
+        "references": []
+      },
+      "validation": []
+    },
+    "domain:login-portal-verify.test": {
+      "pulse_info": {
+        "count": 6,
+        "pulses": [
+          {
+            "id": "demo000000000000000010",
+            "name": "DEMO \u2014 Lumma Stealer C2 cluster #0",
+            "tags": [
+              "lumma",
+              "stealer",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [
+              {
+                "id": "Lumma Stealer",
+                "display_name": "Lumma Stealer",
+                "target": null
+              }
+            ],
+            "attack_ids": [
+              {
+                "id": "T1071.001",
+                "name": "T1071.001",
+                "display_name": "T1071.001"
+              },
+              {
+                "id": "T1041",
+                "name": "T1041",
+                "display_name": "T1041"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000011",
+            "name": "DEMO \u2014 Lumma Stealer C2 cluster #1",
+            "tags": [
+              "lumma",
+              "stealer",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [
+              {
+                "id": "Lumma Stealer",
+                "display_name": "Lumma Stealer",
+                "target": null
+              }
+            ],
+            "attack_ids": [
+              {
+                "id": "T1071.001",
+                "name": "T1071.001",
+                "display_name": "T1071.001"
+              },
+              {
+                "id": "T1041",
+                "name": "T1041",
+                "display_name": "T1041"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000012",
+            "name": "DEMO \u2014 Lumma Stealer C2 cluster #2",
+            "tags": [
+              "lumma",
+              "stealer",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [
+              {
+                "id": "Lumma Stealer",
+                "display_name": "Lumma Stealer",
+                "target": null
+              }
+            ],
+            "attack_ids": [
+              {
+                "id": "T1071.001",
+                "name": "T1071.001",
+                "display_name": "T1071.001"
+              },
+              {
+                "id": "T1041",
+                "name": "T1041",
+                "display_name": "T1041"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000013",
+            "name": "DEMO \u2014 Lumma Stealer C2 cluster #3",
+            "tags": [
+              "lumma",
+              "stealer",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [
+              {
+                "id": "Lumma Stealer",
+                "display_name": "Lumma Stealer",
+                "target": null
+              }
+            ],
+            "attack_ids": [
+              {
+                "id": "T1071.001",
+                "name": "T1071.001",
+                "display_name": "T1071.001"
+              },
+              {
+                "id": "T1041",
+                "name": "T1041",
+                "display_name": "T1041"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000014",
+            "name": "DEMO \u2014 Lumma Stealer C2 cluster #4",
+            "tags": [
+              "lumma",
+              "stealer",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [
+              {
+                "id": "Lumma Stealer",
+                "display_name": "Lumma Stealer",
+                "target": null
+              }
+            ],
+            "attack_ids": [
+              {
+                "id": "T1071.001",
+                "name": "T1071.001",
+                "display_name": "T1071.001"
+              },
+              {
+                "id": "T1041",
+                "name": "T1041",
+                "display_name": "T1041"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000015",
+            "name": "DEMO \u2014 Lumma Stealer C2 cluster #5",
+            "tags": [
+              "lumma",
+              "stealer",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [
+              {
+                "id": "Lumma Stealer",
+                "display_name": "Lumma Stealer",
+                "target": null
+              }
+            ],
+            "attack_ids": [
+              {
+                "id": "T1071.001",
+                "name": "T1071.001",
+                "display_name": "T1071.001"
+              },
+              {
+                "id": "T1041",
+                "name": "T1041",
+                "display_name": "T1041"
+              }
+            ],
+            "references": []
+          }
+        ],
+        "references": []
+      },
+      "validation": []
+    },
+    "ipv4:203.0.113.200": {
+      "pulse_info": {
+        "count": 2,
+        "pulses": [
+          {
+            "id": "demo000000000000000021",
+            "name": "DEMO \u2014 VPN password-spraying sources",
+            "tags": [
+              "password-spray",
+              "vpn",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [],
+            "attack_ids": [
+              {
+                "id": "T1110.003",
+                "name": "T1110.003",
+                "display_name": "T1110.003"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000022",
+            "name": "DEMO \u2014 Residential proxy exit nodes",
+            "tags": [
+              "proxy",
+              "demo"
+            ],
+            "created": "2026-10-16T09:00:00.000000",
+            "modified": "2026-10-21T18:00:00.000000",
+            "adversary": "",
+            "malware_families": [],
+            "attack_ids": [],
+            "references": []
+          }
+        ],
+        "references": []
+      },
+      "validation": []
+    },
+    "ipv4:203.0.113.45": {
+      "pulse_info": {
+        "count": 2,
+        "pulses": [
+          {
+            "id": "demo000000000000000031",
+            "name": "DEMO \u2014 Mass scanning for PHP-CGI CVE-2024-4577",
+            "tags": [
+              "php",
+              "cve-2024-4577",
+              "scanner",
+              "demo"
+            ],
+            "created": "2026-10-10T09:00:00.000000",
+            "modified": "2026-10-21T08:00:00.000000",
+            "adversary": "",
+            "malware_families": [],
+            "attack_ids": [
+              {
+                "id": "T1190",
+                "name": "T1190",
+                "display_name": "T1190"
+              }
+            ],
+            "references": []
+          },
+          {
+            "id": "demo000000000000000032",
+            "name": "DEMO \u2014 Web exploitation sources Oct 2026",
+            "tags": [
+              "exploit",
+              "demo"
+            ],
+            "created": "2026-10-10T09:00:00.000000",
+            "modified": "2026-10-21T08:00:00.000000",
+            "adversary": "",
+            "malware_families": [],
+            "attack_ids": [
+              {
+                "id": "T1190",
+                "name": "T1190",
+                "display_name": "T1190"
+              }
+            ],
+            "references": []
+          }
+        ],
+        "references": []
+      },
+      "validation": []
+    }
+  }
+}

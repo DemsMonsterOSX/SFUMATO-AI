@@ -1,0 +1,162 @@
+# Executable playbook run by the Sfumato SOAR engine (backend/app/soar/engine.py).
+# Nodes run as soon as all their dependencies are completed or skipped; independent branches
+# (CTI enrichment and behavioural analysis) run concurrently.
+#   when:        name of a predicate (backend/app/soar/tasks.py: PREDICATES); false => node is skipped
+#   retry:       max_attempts / backoff_seconds (exponential)
+#   timeout:     seconds before the attempt is cancelled
+#   on_failure:  abort (stop the playbook, investigation fails) | continue (dependants still run)
+#   milestone:   real-time investigation milestone published when the node completes
+id: SFUMATO_AUTONOMOUS_INVESTIGATION
+version: "1.0"
+name: Sfumato autonomous investigation
+description: >
+  Receives an incident, enriches it with threat intelligence, analyses behaviour, applies machine learning
+  and an AI investigator, then computes an explainable verdict and display-only recommendations.
+remediation: none  # this playbook never executes response actions
+
+nodes:
+  - id: receive_incident
+    name: Receive incident
+    stage: 1
+    handler: receive_incident
+    on_failure: abort
+    milestone: json_received
+
+  - id: validate_json
+    name: Validate JSON
+    stage: 2
+    handler: validate_json
+    depends_on: [receive_incident]
+    on_failure: abort
+    milestone: incident_validated
+
+  - id: normalize_incident
+    name: Normalize incident
+    stage: 3
+    handler: normalize_incident
+    depends_on: [validate_json]
+    on_failure: abort
+
+  - id: extract_indicators
+    name: Extract indicators
+    stage: 4
+    handler: extract_indicators
+    depends_on: [normalize_incident]
+    on_failure: abort
+    milestone: indicators_extracted
+
+  - id: classify_assets
+    name: Identify internal and external assets
+    stage: 5
+    handler: classify_assets
+    depends_on: [extract_indicators]
+    on_failure: abort
+
+  - id: query_cti
+    name: Query CTI sources
+    stage: 6
+    handler: query_cti
+    depends_on: [classify_assets]
+    when: has_queryable_indicators
+    retry: {max_attempts: 2, backoff_seconds: 1}
+    timeout: 90
+    on_failure: continue
+    milestone: cti_queried
+
+  - id: correlate_cti
+    name: Correlate CTI evidence
+    stage: 7
+    handler: correlate_cti
+    depends_on: [query_cti]
+    when: has_cti_results
+    on_failure: continue
+    milestone: cti_evidence_received
+
+  - id: analyze_behavior
+    name: Analyze process and network behavior
+    stage: 8
+    handler: analyze_behavior
+    depends_on: [classify_assets]
+    on_failure: abort
+
+  - id: generate_features
+    name: Generate ML features
+    stage: 9
+    handler: generate_features
+    depends_on: [correlate_cti, analyze_behavior]
+    on_failure: abort
+    milestone: soar_correlation_completed
+
+  - id: ml_inference
+    name: Execute ML inference
+    stage: 10
+    handler: ml_inference
+    depends_on: [generate_features]
+    retry: {max_attempts: 2, backoff_seconds: 0.5}
+    timeout: 30
+    on_failure: continue
+    milestone: ml_classification_completed
+
+  - id: retrieve_knowledge
+    name: Retrieve knowledge base guidance
+    stage: 10
+    handler: retrieve_knowledge
+    depends_on: [generate_features]
+    when: knowledge_available
+    timeout: 60
+    on_failure: continue
+
+  - id: invoke_ai
+    name: Invoke AI investigator
+    stage: 11
+    handler: invoke_ai
+    depends_on: [ml_inference, retrieve_knowledge]
+    timeout: 600
+    on_failure: abort
+
+  - id: validate_agent_output
+    name: Validate agent output
+    stage: 12
+    handler: validate_agent_output
+    depends_on: [invoke_ai]
+    on_failure: abort
+    milestone: ai_investigation_completed
+
+  - id: compute_verdict
+    name: Compute final verdict
+    stage: 13
+    handler: compute_verdict
+    depends_on: [validate_agent_output]
+    on_failure: abort
+    milestone: final_verdict_generated
+
+  - id: generate_actions
+    name: Generate recommended actions
+    stage: 14
+    handler: generate_actions
+    depends_on: [compute_verdict]
+    on_failure: abort
+    milestone: recommended_actions_available
+
+  - id: route_human_review
+    name: Route to human review
+    stage: 14
+    handler: route_human_review
+    depends_on: [compute_verdict]
+    when: human_review_required
+    on_failure: continue
+
+  - id: store_report
+    name: Store report
+    stage: 15
+    handler: store_report
+    depends_on: [generate_actions, route_human_review]
+    retry: {max_attempts: 3, backoff_seconds: 0.5}
+    on_failure: abort
+
+  - id: publish_results
+    name: Publish results to frontend
+    stage: 16
+    handler: publish_results
+    depends_on: [store_report]
+    on_failure: abort

@@ -1,0 +1,418 @@
+{
+  "model_name": "xgboost",
+  "version": "1.0-xgboost-20261112155302",
+  "trained_at": "2026-11-12T15:53:02.376895+00:00",
+  "dataset": {
+    "name": "sfumato-synthetic-soc-triage",
+    "version": "1.0",
+    "synthetic": true,
+    "rows": 12000,
+    "seed": 1337,
+    "class_balance": {
+      "benign_positive": 4131,
+      "false_positive": 4018,
+      "true_positive": 3851
+    },
+    "archetypes": {
+      "admin_scripting": 1242,
+      "approved_software": 1211,
+      "admin_remote_execution": 1026,
+      "patch_deployment": 1024,
+      "macro_dropper": 932,
+      "sanctioned_update": 883,
+      "authorised_scanning": 842,
+      "c2_beacon": 770,
+      "noisy_rule": 768,
+      "brute_force_success": 696,
+      "shared_infrastructure": 614,
+      "user_typo": 571,
+      "credential_dump": 536,
+      "lateral_ransom": 443,
+      "masquerade_malware": 442
+    },
+    "splits": {
+      "train": 8400,
+      "validation": 1783,
+      "test": 1777
+    },
+    "overlap_rows_removed": {
+      "validation": 17,
+      "test": 23
+    },
+    "label_noise_rate": 0.03,
+    "feature_noise_rate": 0.02
+  },
+  "selection": {
+    "criterion": "validation macro-F1, simpler model wins ties within 0.005",
+    "candidates": {
+      "logistic_regression": {
+        "validation": {
+          "macro_f1": 0.8716,
+          "accuracy": 0.8716,
+          "roc_auc_ovr_macro": 0.957,
+          "per_class": {
+            "true_positive": {
+              "precision": 0.8648,
+              "recall": 0.9009,
+              "f1": 0.8825,
+              "support": 575
+            },
+            "false_positive": {
+              "precision": 0.8701,
+              "recall": 0.8921,
+              "f1": 0.8809,
+              "support": 593
+            },
+            "benign_positive": {
+              "precision": 0.8802,
+              "recall": 0.8244,
+              "f1": 0.8514,
+              "support": 615
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "true_positive",
+              "false_positive",
+              "benign_positive"
+            ],
+            "matrix": [
+              [
+                518,
+                24,
+                33
+              ],
+              [
+                28,
+                529,
+                36
+              ],
+              [
+                53,
+                55,
+                507
+              ]
+            ]
+          }
+        },
+        "fit_seconds": 0.03
+      },
+      "random_forest": {
+        "validation": {
+          "macro_f1": 0.8997,
+          "accuracy": 0.8996,
+          "roc_auc_ovr_macro": 0.9629,
+          "per_class": {
+            "true_positive": {
+              "precision": 0.9096,
+              "recall": 0.927,
+              "f1": 0.9182,
+              "support": 575
+            },
+            "false_positive": {
+              "precision": 0.883,
+              "recall": 0.9292,
+              "f1": 0.9055,
+              "support": 593
+            },
+            "benign_positive": {
+              "precision": 0.9075,
+              "recall": 0.8455,
+              "f1": 0.8754,
+              "support": 615
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "true_positive",
+              "false_positive",
+              "benign_positive"
+            ],
+            "matrix": [
+              [
+                533,
+                17,
+                25
+              ],
+              [
+                14,
+                551,
+                28
+              ],
+              [
+                39,
+                56,
+                520
+              ]
+            ]
+          }
+        },
+        "fit_seconds": 0.48
+      },
+      "xgboost": {
+        "validation": {
+          "macro_f1": 0.9056,
+          "accuracy": 0.9052,
+          "roc_auc_ovr_macro": 0.9665,
+          "per_class": {
+            "true_positive": {
+              "precision": 0.917,
+              "recall": 0.9217,
+              "f1": 0.9193,
+              "support": 575
+            },
+            "false_positive": {
+              "precision": 0.9145,
+              "recall": 0.9022,
+              "f1": 0.9083,
+              "support": 593
+            },
+            "benign_positive": {
+              "precision": 0.8855,
+              "recall": 0.8927,
+              "f1": 0.8891,
+              "support": 615
+            }
+          },
+          "confusion_matrix": {
+            "labels": [
+              "true_positive",
+              "false_positive",
+              "benign_positive"
+            ],
+            "matrix": [
+              [
+                530,
+                14,
+                31
+              ],
+              [
+                18,
+                535,
+                40
+              ],
+              [
+                30,
+                36,
+                549
+              ]
+            ]
+          }
+        },
+        "fit_seconds": 0.49
+      }
+    }
+  },
+  "test": {
+    "macro_f1": 0.896,
+    "accuracy": 0.8959,
+    "roc_auc_ovr_macro": 0.9656,
+    "per_class": {
+      "true_positive": {
+        "precision": 0.9144,
+        "recall": 0.8906,
+        "f1": 0.9024,
+        "support": 576
+      },
+      "false_positive": {
+        "precision": 0.8825,
+        "recall": 0.908,
+        "f1": 0.895,
+        "support": 587
+      },
+      "benign_positive": {
+        "precision": 0.8922,
+        "recall": 0.8893,
+        "f1": 0.8907,
+        "support": 614
+      }
+    },
+    "confusion_matrix": {
+      "labels": [
+        "true_positive",
+        "false_positive",
+        "benign_positive"
+      ],
+      "matrix": [
+        [
+          513,
+          29,
+          34
+        ],
+        [
+          22,
+          533,
+          32
+        ],
+        [
+          26,
+          42,
+          546
+        ]
+      ]
+    }
+  },
+  "feature_importance": [
+    {
+      "feature": "admin_context",
+      "importance": 0.1898
+    },
+    {
+      "feature": "approved_software",
+      "importance": 0.14
+    },
+    {
+      "feature": "verified_change",
+      "importance": 0.0938
+    },
+    {
+      "feature": "severity",
+      "importance": 0.0525
+    },
+    {
+      "feature": "noisy_rule",
+      "importance": 0.0492
+    },
+    {
+      "feature": "failed_logins_log",
+      "importance": 0.0384
+    },
+    {
+      "feature": "sanctioned_destination",
+      "importance": 0.035
+    },
+    {
+      "feature": "office_parent_shell",
+      "importance": 0.0342
+    },
+    {
+      "feature": "cti_malicious_providers",
+      "importance": 0.0325
+    },
+    {
+      "feature": "cti_max_confidence",
+      "importance": 0.0311
+    },
+    {
+      "feature": "has_process",
+      "importance": 0.0257
+    },
+    {
+      "feature": "credential_access",
+      "importance": 0.0229
+    },
+    {
+      "feature": "nonstandard_port",
+      "importance": 0.0193
+    },
+    {
+      "feature": "cti_allowlisted",
+      "importance": 0.0188
+    },
+    {
+      "feature": "masquerading",
+      "importance": 0.0175
+    },
+    {
+      "feature": "download_cradle",
+      "importance": 0.0151
+    },
+    {
+      "feature": "lateral_movement",
+      "importance": 0.0137
+    },
+    {
+      "feature": "has_network",
+      "importance": 0.0136
+    },
+    {
+      "feature": "success_after_failures",
+      "importance": 0.0134
+    },
+    {
+      "feature": "cti_kev",
+      "importance": 0.0132
+    },
+    {
+      "feature": "has_file",
+      "importance": 0.0117
+    },
+    {
+      "feature": "persistence",
+      "importance": 0.0112
+    },
+    {
+      "feature": "encoded_command",
+      "importance": 0.011
+    },
+    {
+      "feature": "defense_evasion",
+      "importance": 0.0107
+    },
+    {
+      "feature": "lolbin",
+      "importance": 0.009
+    },
+    {
+      "feature": "has_auth",
+      "importance": 0.0085
+    },
+    {
+      "feature": "detector_confidence",
+      "importance": 0.0083
+    },
+    {
+      "feature": "ransomware",
+      "importance": 0.008
+    },
+    {
+      "feature": "off_hours",
+      "importance": 0.0075
+    },
+    {
+      "feature": "large_upload",
+      "importance": 0.0071
+    },
+    {
+      "feature": "raw_ip_destination",
+      "importance": 0.0069
+    },
+    {
+      "feature": "cti_suspicious_providers",
+      "importance": 0.0061
+    },
+    {
+      "feature": "unverified_change",
+      "importance": 0.0053
+    },
+    {
+      "feature": "geo_anomaly",
+      "importance": 0.0051
+    },
+    {
+      "feature": "public_indicators",
+      "importance": 0.0051
+    },
+    {
+      "feature": "asset_criticality",
+      "importance": 0.0045
+    },
+    {
+      "feature": "prompt_injection",
+      "importance": 0.0044
+    }
+  ],
+  "abstention": {
+    "min_completeness": 0.4,
+    "min_probability": 0.55,
+    "ood": "IsolationForest score below the 0.5th percentile of training scores",
+    "ood_threshold": -0.5719
+  },
+  "limitations": [
+    "Trained on synthetic, explicitly labelled demonstration data; metrics measure recovery of the generator's archetypes, not real-world SOC performance.",
+    "Features overlap with the deterministic rules (behaviour, CTI, context), so the model is not an independent witness; the decision engine caps its influence.",
+    "Retrain on your own labelled triage history (e.g. exported analyst verdicts) before operational use."
+  ],
+  "training_seconds": 2.32,
+  "sklearn_version": "1.6.1"
+}

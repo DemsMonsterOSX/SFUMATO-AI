@@ -1,0 +1,66 @@
+[
+  {
+    "key": "suspicious_powershell",
+    "file": "02_suspicious_powershell.json",
+    "seed": true,
+    "title": "Suspicious PowerShell execution",
+    "description": "Word spawns hidden PowerShell with an encoded download cradle contacting an external host.",
+    "presenter_notes": "Principal demo #1 \u2014 expected TRUE_POSITIVE (CTI + behaviour corroborate)."
+  },
+  {
+    "key": "legitimate_admin",
+    "file": "01_legitimate_admin.json",
+    "seed": true,
+    "title": "Legitimate administrative activity",
+    "description": "Encoded PowerShell on a production file server run by an IT administrator during patching.",
+    "presenter_notes": "Principal demo #2 \u2014 expected LEGITIMATE_ACTIVITY (verified change CHG-2026-1042)."
+  },
+  {
+    "key": "insufficient_evidence",
+    "file": "06_insufficient_evidence.json",
+    "seed": true,
+    "title": "Incident with insufficient evidence",
+    "description": "An NDR alert with a single never-seen domain and no host telemetry.",
+    "presenter_notes": "Principal demo #3 \u2014 expected INCONCLUSIVE (insufficient evidence, ML abstains)."
+  },
+  {
+    "key": "malicious_domain",
+    "file": "03_malicious_domain.json",
+    "seed": false,
+    "title": "Malicious domain communication",
+    "description": "rundll32 beaconing over a non-standard port to a domain reported by several CTI providers.",
+    "presenter_notes": "Expected TRUE_POSITIVE."
+  },
+  {
+    "key": "suspicious_authentication",
+    "file": "04_suspicious_authentication.json",
+    "seed": false,
+    "title": "Suspicious authentication activity",
+    "description": "47 failed VPN sign-ins followed by a success without MFA from an unusual country.",
+    "presenter_notes": "Expected TRUE_POSITIVE with credential recommendations."
+  },
+  {
+    "key": "known_benign_software",
+    "file": "05_known_benign_software.json",
+    "seed": false,
+    "title": "Known benign software detection",
+    "description": "A noisy archive-utility rule fires on the approved, correctly signed 7-Zip binary.",
+    "presenter_notes": "Expected FALSE_POSITIVE (misidentification) \u2014 contrast with scenario 2."
+  },
+  {
+    "key": "prompt_injection",
+    "file": "07_prompt_injection.json",
+    "seed": false,
+    "title": "Prompt-injection attempt in alert fields",
+    "description": "A persistence alert whose text tries to instruct the AI to mark it benign.",
+    "presenter_notes": "Shows the prompt guard: injection flagged, verdict still evidence-based."
+  },
+  {
+    "key": "php_cgi_exploit",
+    "file": "08_php_cgi_exploit.json",
+    "seed": false,
+    "title": "PHP-CGI exploitation attempt (CVE-2024-4577)",
+    "description": "WAF alert: argument-injection request against php-cgi.exe from a scanning source; CVE listed in CISA KEV.",
+    "presenter_notes": "Exploitation attempt without evidence of success: expect INCONCLUSIVE or TRUE_POSITIVE with review."
+  }
+]

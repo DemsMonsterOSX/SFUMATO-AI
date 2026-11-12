@@ -1,0 +1,56 @@
+# Organisation context used by the behavioural analyser ("Sfumato Local Intelligence").
+# This is *your* knowledge about your environment: it is never sent to external services.
+# The values below describe the fictional demo organisation used in the bundled scenarios.
+
+organization:
+  name: Sfumato Demo Corp
+  internal_domains: [sfumato-demo.local, corp.sfumato-demo.local]
+
+# Accounts that are expected to run administrative tooling.
+admin_users: [it.admin, svc.patching, svc.backup]
+
+# Hosts on which administrative tooling is expected.
+admin_hosts: [SRV-MGMT-01, SRV-FILE-01, SRV-PATCH-01]
+
+# Change register (normally exported from your ITSM/CMDB). A change ticket quoted in an alert is only
+# treated as authorisation if it exists here AND matches the host/user of the alert.
+change_register:
+  CHG-2026-1042:
+    title: Quarterly patch deployment on file servers
+    hosts: [SRV-FILE-01]
+    users: [it.admin]
+    approved_by: CAB 2026-10-20
+    window_start: "2026-10-22T10:00:00Z"
+    window_end: "2026-10-22T16:00:00Z"
+
+# Software catalogue: approved software identified by binary name and code-signing publisher.
+approved_software:
+  - name: 7z.exe
+    signer: Igor Pavlov
+    product: 7-Zip
+  - name: 7zfm.exe
+    signer: Igor Pavlov
+    product: 7-Zip File Manager
+  - name: teams.exe
+    signer: Microsoft Corporation
+    product: Microsoft Teams
+  - name: msedgeupdate.exe
+    signer: Microsoft Corporation
+    product: Microsoft Edge Update
+  - name: googleupdate.exe
+    signer: Google LLC
+    product: Google Update
+  - name: psexec.exe
+    signer: Microsoft Corporation
+    product: Sysinternals PsExec (admin use only)
+    admin_only: true
+
+# Destinations explicitly sanctioned by the organisation (vendor update services, SaaS).
+sanctioned_domains: [windowsupdate.com, update.microsoft.com, officecdn.microsoft.com, dl.google.com]
+
+# Detection rules with a documented high false-positive rate in this environment.
+noisy_detection_rules:
+  "Generic Archive Utility Execution": "Fires on every 7-Zip extraction; tuned out on 2026-09-01 review"
+
+# Working hours used for the off-hours heuristic (UTC).
+working_hours_utc: {start: 6, end: 19}

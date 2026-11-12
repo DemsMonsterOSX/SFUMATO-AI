@@ -1,0 +1,44 @@
+{
+  "incident_id": "SFUMATO-2026-0104",
+  "timestamp": "2026-10-22T03:47:00Z",
+  "source": "IdP",
+  "severity": "medium",
+  "alert": {
+    "name": "Successful Sign-in After Multiple Failures",
+    "description": "47 failed sign-ins followed by a successful sign-in from an unusual country",
+    "category": "credential-access"
+  },
+  "asset": {
+    "hostname": "VPN-GW-01",
+    "criticality": "high",
+    "environment": "dmz"
+  },
+  "user": {
+    "username": "j.martin",
+    "domain": "sfumato-demo.local",
+    "department": "Sales"
+  },
+  "authentication": {
+    "result": "success",
+    "failed_attempts": 47,
+    "source_ip": "203.0.113.200",
+    "source_country": "BR",
+    "usual_country": "FR",
+    "mfa": false,
+    "logon_type": "vpn"
+  },
+  "indicators": [
+    {
+      "type": "ipv4",
+      "value": "203.0.113.200"
+    }
+  ],
+  "metadata": {
+    "detection_rule": "Brute Force Followed by Success",
+    "confidence": 70,
+    "tags": [
+      "identity",
+      "vpn"
+    ]
+  }
+}
