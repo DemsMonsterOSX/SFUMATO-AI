@@ -1,0 +1,149 @@
+# Sfumato Autonomous SOC — LITE mode (default)
+#   docker compose up -d --build        → http://localhost:3000
+# Optional local LLM in a container (NVIDIA GPU):  docker compose --profile llm up -d --build
+# FULL mode with OpenCTI:  docker compose -f docker-compose.yml -f docker-compose.full.yml up -d --build
+name: sfumato
+
+x-backend-env: &backend-env
+  DATABASE_URL: postgresql+psycopg://sfumato:${POSTGRES_PASSWORD:-sfumato-db-password}@postgres:5432/sfumato
+  REDIS_URL: redis://redis:6379/0
+  ENVIRONMENT: production
+  DEPLOYMENT_MODE: ${DEPLOYMENT_MODE:-lite}
+  API_KEYS: ${API_KEYS:-sfumato-dev-key-change-me}
+  SECRET_KEY: ${SECRET_KEY:-change-this-secret-key-for-credential-encryption}
+  CORS_ORIGINS: ${CORS_ORIGINS:-http://localhost:3000}
+  CTI_MODE: ${CTI_MODE:-demo}
+  ABUSECH_AUTH_KEY: ${ABUSECH_AUTH_KEY:-}
+  OTX_API_KEY: ${OTX_API_KEY:-}
+  OPENCTI_URL: ${OPENCTI_URL:-}
+  OPENCTI_TOKEN: ${OPENCTI_TOKEN:-}
+  AI_PROVIDER: ${AI_PROVIDER:-auto}
+  AI_ALLOW_EXTERNAL: ${AI_ALLOW_EXTERNAL:-false}
+  # By default the containers use an Ollama running on the host machine (if any);
+  # with `--profile llm`, set OLLAMA_URL=http://ollama:11434 in .env.
+  OLLAMA_URL: ${OLLAMA_URL:-http://host.docker.internal:11434}
+  OLLAMA_MODEL: ${OLLAMA_MODEL:-qwen2.5:7b-instruct}
+  ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
+  ANTHROPIC_MODEL: ${ANTHROPIC_MODEL:-claude-sonnet-5-5}
+  OPENAI_API_KEY: ${OPENAI_API_KEY:-}
+  OPENAI_BASE_URL: ${OPENAI_BASE_URL:-https://api.openai.com/v1}
+  OPENAI_MODEL: ${OPENAI_MODEL:-gpt-4o-mini}
+  SEED_DEMO_INCIDENTS: ${SEED_DEMO_INCIDENTS:-true}
+  # Bucket integration (all optional): models and knowledge bases built on Kaggle, published to GCS / HF Hub
+  ML_ARTIFACT_URI: ${ML_ARTIFACT_URI:-}
+  KB_ARTIFACT_URI: ${KB_ARTIFACT_URI:-}
+  KB_HF_REPO: ${KB_HF_REPO:-}
+  HF_TOKEN: ${HF_TOKEN:-}
+  ARTIFACT_SIGNING_KEY: ${ARTIFACT_SIGNING_KEY:-}
+  GOOGLE_APPLICATION_CREDENTIALS: ${GOOGLE_APPLICATION_CREDENTIALS:-}
+
+services:
+  postgres:
+    image: pgvector/pgvector:pg16  # PostgreSQL 16 + pgvector (knowledge base similarity search)
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: sfumato
+      POSTGRES_USER: sfumato
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-sfumato-db-password}
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U sfumato -d sfumato"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    image: sfumato/backend:1.0.0
+    restart: unless-stopped
+    environment:
+      <<: *backend-env
+      EMBEDDED_WORKER: "false"
+    ports:
+      - "8000:8000"
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./secrets:/run/secrets:ro  # e.g. secrets/gcs-reader.json (read-only service account key)
+      - kbdata:/srv/ml/knowledge_base
+    depends_on:
+      postgres: {condition: service_healthy}
+      redis: {condition: service_healthy}
+
+  worker:
+    image: sfumato/backend:1.0.0
+    restart: unless-stopped
+    command: ["python", "-m", "app.workers.worker"]
+    environment:
+      <<: *backend-env
+      EMBEDDED_WORKER: "false"
+      WORKER_CONCURRENCY: ${WORKER_CONCURRENCY:-2}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    volumes:
+      - ./secrets:/run/secrets:ro
+      - kbdata:/srv/ml/knowledge_base
+    healthcheck:
+      disable: true
+    depends_on:
+      api: {condition: service_healthy}
+
+  frontend:
+    build:
+      context: ./frontend
+    image: sfumato/frontend:1.0.0
+    restart: unless-stopped
+    environment:
+      BACKEND_URL: http://api:8000
+      API_KEYS: ${API_KEYS:-sfumato-dev-key-change-me}
+    ports:
+      - "3000:3000"
+    depends_on:
+      api: {condition: service_healthy}
+
+  ollama:
+    profiles: ["llm"]
+    image: ollama/ollama:0.40.8
+    restart: unless-stopped
+    volumes:
+      - ollama:/root/.ollama
+    ports:
+      - "11434:11434"
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: all
+              capabilities: [gpu]
+
+  ollama-pull:
+    profiles: ["llm"]
+    image: ollama/ollama:0.40.8
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    entrypoint: ["/bin/sh", "-c", "sleep 5 && ollama pull ${OLLAMA_MODEL:-qwen2.5:7b-instruct}"]
+    depends_on:
+      - ollama
+    restart: "no"
+
+volumes:
+  pgdata:
+  redisdata:
+  kbdata:
+  ollama:
