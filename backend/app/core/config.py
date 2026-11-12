@@ -87,6 +87,8 @@ class Settings(BaseSettings):
     ml_artifact_uri: str | None = None  # gs://bucket/prefix | hf://user/repo | local folder
     ml_artifact_name: str = "guide_triage"
     ml_artifact_require_signature: bool = True  # remote artifacts are pickles: verify HMAC + sha256
+    # A published model is refused unless its own held-out metrics beat chance by this margin (0 disables the gate)
+    ml_artifact_min_auc: float = 0.60
     artifact_signing_key: str | None = None
     google_application_credentials: str | None = None  # path to a read-only service-account key (GCS)
 

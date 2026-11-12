@@ -269,3 +269,40 @@ def test_notebooks_embed_current_sources():
         for name, src in files.items():
             body = (REPO / src).read_text(encoding="utf-8").strip("\n")
             assert f"%%writefile {name}\n{body}" in cells, f"{nb_path}: regenerate the notebook ({name} is stale)"
+
+
+def test_quality_gate_refuses_a_model_that_does_not_beat_chance():
+    from app.ml.guide_inference import GuideModelService
+
+    def m(auc):
+        return {"test": {"binary_threat_vs_non_threat": {"roc_auc": auc}}}
+
+    gate = GuideModelService._quality_gate
+    gate(m(0.82), 0.60)                       # good model passes
+    gate(m(0.30), 0)                          # gate disabled
+    for bad in (m(0.4563), m(0.599), None, {"test": {}}):
+        with pytest.raises(ValueError, match="rejected"):
+            gate(bad, 0.60)
+
+
+def test_structure_experiment_is_marked_and_refused_by_the_service(trained, tmp_path, monkeypatch):
+    work, _ = trained
+    mod = sys.modules["train_guide"]
+    out = tmp_path / "structure_out"
+    r = mod.train([str(work / "GUIDE_Train.csv")], str(out), fast=True, log=lambda *_: None, structure=True)
+    assert r["structure_features"] is True
+    names = [f["feature"] for f in r["feature_importance"]]
+    assert any(n in names for n in ("log_alerts", "log_evidence_rows", "log_detectors", "log_duration_hours"))
+
+    from app.ml.guide_inference import GuideModelService
+
+    monkeypatch.setenv("ML_ARTIFACT_URI", "")
+    monkeypatch.setenv("ML_MODEL_DIR", str(tmp_path / "models"))
+    get_settings.cache_clear()
+    (tmp_path / "models" / "guide").mkdir(parents=True)
+    for f in out.iterdir():
+        (tmp_path / "models" / "guide" / f.name).write_bytes(f.read_bytes())
+    svc = GuideModelService()
+    status = svc.sync()
+    assert status["state"] == "error" and "structure" in status["error"]
+    get_settings.cache_clear()

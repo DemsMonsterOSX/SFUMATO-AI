@@ -51,8 +51,10 @@ MAX_ROWS = None                           # e.g. 2_000_000 for a quick first run
     cells += [
         code("""
 import glob
-csvs = sorted(glob.glob("/kaggle/input/**/GUIDE_*.csv", recursive=True))
+# Train first, then Test; the dataset also ships GUIDE_Test_Queue_Rankings.csv, which has no triage labels
+csvs = [p for n in ("GUIDE_Train.csv", "GUIDE_Test.csv") for p in sorted(glob.glob(f"/kaggle/input/**/{n}", recursive=True))]
 print(csvs)
+assert csvs, "GUIDE_Train.csv not found under /kaggle/input: Add Input > Datasets > 'Microsoft Security Incident Prediction' (the dataset, not a notebook of the same name)"
 rows = "" if MAX_ROWS is None else f"--max-rows {MAX_ROWS}"
 !python train_guide.py --csv {" ".join(csvs)} --out /kaggle/working/guide_out {rows} --publish-to {BUCKET_URI}
 """),
@@ -77,7 +79,38 @@ Restart Sfumato or call `POST /api/v1/ml/guide/sync`.
                                          "language_info": {"name": "python"}}, "nbformat": 4, "nbformat_minor": 5}
 
 
+def experiment_notebook() -> dict:
+    """Variant that trains with --structure (incident-structure features) and publishes NOTHING: no secrets needed."""
+    nb = notebook()
+    cells = nb["cells"]
+    cells[0] = md("""
+# Sfumato — GUIDE experiment: do incident-structure signals generalise across organisations?
+
+Baseline (portable signals only, full data, organisation hold-out): test ROC-AUC threat-vs-non-threat **0.516**, macro-F1 **0.426**.
+This run adds incident-structure features (number of alerts, evidence rows, detectors, duration, impacted share, entity counts).
+Nothing is published: a Sfumato alert is a single alert, so these counts could not be reproduced when serving.
+
+Before running: *Add Input* → dataset **Microsoft Security Incident Prediction**. Accelerator **None**. No secrets, no Internet needed.
+""")
+    cells[1] = code("""
+MAX_ROWS = None   # full data (about 13.7M rows, roughly 11 minutes)
+""")
+    for c in cells:
+        src = "".join(c["source"])
+        if c["cell_type"] == "code" and "train_guide.py --csv" in src:
+            src = src.replace("{rows} --publish-to {BUCKET_URI}", "{rows} --structure")
+            c["source"] = src.splitlines(keepends=True)
+    cells[-1] = md("""
+**Reading the result:** compare `threat vs non-threat roc_auc` with the baseline 0.516. Above 0.60 on unseen organisations
+means GUIDE carries transferable signal; below it, stop using GUIDE for the reference model.
+""")
+    return nb
+
+
 if __name__ == "__main__":
     out = HERE / "sfumato_guide_kaggle.ipynb"
     out.write_text(json.dumps(notebook(), indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
     print(f"wrote {out}")
+    exp = HERE / "sfumato_guide_structure_experiment.ipynb"
+    exp.write_text(json.dumps(experiment_notebook(), indent=1, ensure_ascii=False) + "\n", encoding="utf-8")
+    print(f"wrote {exp}")

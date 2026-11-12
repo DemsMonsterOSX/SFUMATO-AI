@@ -50,12 +50,14 @@ import guide_features as gf  # noqa: E402
 DATASET = {"name": "Microsoft Security Incident Prediction (GUIDE)", "license": "CDLA-Permissive-2.0",
            "url": "https://www.kaggle.com/datasets/Microsoft/microsoft-security-incident-prediction"}
 COMPLEXITY = {"logistic_regression": 0, "random_forest": 1, "xgboost": 2}
-USECOLS = {"IncidentId", "OrgId", "Timestamp", "Category", "MitreTechniques", "EntityType", "IncidentGrade"}
+USECOLS = {"IncidentId", "OrgId", "Timestamp", "Category", "MitreTechniques", "EntityType", "IncidentGrade",
+           "AlertId", "DetectorId", "EvidenceRole"}  # the last three only feed the --structure experiment
 REQUIRED = {"IncidentId", "IncidentGrade"}
 
 
-def aggregate(csv_paths: list[str], max_rows: int | None, log) -> tuple[pd.DataFrame, dict[str, pd.DataFrame]]:
+def aggregate(csv_paths: list[str], max_rows: int | None, log, structure: bool = False):
     metas, pairs = [], {"cat": [], "tech": [], "ent": []}
+    ex: dict[str, list] = {k: [] for k in ("alert", "det", "rows", "role", "entrows", "tmin", "tmax")}
     rows = 0
     for path in csv_paths:
         for chunk in pd.read_csv(path, usecols=lambda c: c in USECOLS, chunksize=1_000_000, dtype=str):
@@ -79,6 +81,19 @@ def aggregate(csv_paths: list[str], max_rows: int | None, log) -> tuple[pd.DataF
                 pairs["tech"].append(t[["IncidentId", "Tech"]].explode("Tech").dropna().drop_duplicates())
             if "EntityType" in chunk:
                 pairs["ent"].append(chunk[["IncidentId", "EntityType"]].dropna().drop_duplicates())
+            if structure:
+                if "AlertId" in chunk:
+                    ex["alert"].append(chunk[["IncidentId", "AlertId"]].dropna().drop_duplicates())
+                if "DetectorId" in chunk:
+                    ex["det"].append(chunk[["IncidentId", "DetectorId"]].dropna().drop_duplicates())
+                ex["rows"].append(chunk.groupby("IncidentId").size().rename("n"))
+                if "EvidenceRole" in chunk:
+                    ex["role"].append(chunk.groupby(["IncidentId", "EvidenceRole"]).size().rename("n").reset_index())
+                if "EntityType" in chunk:
+                    ex["entrows"].append(chunk.groupby(["IncidentId", "EntityType"]).size().rename("n").reset_index())
+                ts = pd.to_datetime(chunk["Timestamp"], errors="coerce", utc=True)
+                ex["tmin"].append(ts.groupby(chunk["IncidentId"]).min())
+                ex["tmax"].append(ts.groupby(chunk["IncidentId"]).max())
             log(f"  {rows:,} rows read")
             if max_rows is not None and rows >= max_rows:
                 break
@@ -87,7 +102,49 @@ def aggregate(csv_paths: list[str], max_rows: int | None, log) -> tuple[pd.DataF
     meta = meta.dropna(subset=["label"])
     merged = {k: (pd.concat(v).drop_duplicates() if v else pd.DataFrame(columns=["IncidentId", "x"]))
               for k, v in pairs.items()}
-    return meta, merged
+    return meta, merged, ex
+
+
+STRUCTURE_NAMES = ["log_alerts", "log_evidence_rows", "log_detectors", "log_duration_hours", "impacted_share"]
+
+
+def structure_matrix(meta: pd.DataFrame, ex: dict, vocab: dict) -> tuple[np.ndarray, list[str]]:
+    """Incident-STRUCTURE features: how many alerts / evidence rows / detectors, how long, which share is impacted.
+
+    Experiment only: a Sfumato alert is a single alert, so these counts cannot be reproduced at serving time.
+    A model trained with them is marked structure=True and refused by the serving code.
+    """
+    idx = meta.index
+
+    def count(frames):
+        if not frames:
+            return pd.Series(0, index=idx)
+        return pd.concat(frames).drop_duplicates().groupby("IncidentId").size().reindex(idx).fillna(0)
+
+    n_alerts, n_det = count(ex["alert"]), count(ex["det"])
+    n_rows = pd.concat(ex["rows"]).groupby(level=0).sum().reindex(idx).fillna(0)
+    tmin = pd.concat(ex["tmin"]).groupby(level=0).min()
+    tmax = pd.concat(ex["tmax"]).groupby(level=0).max()
+    hours = ((tmax - tmin).dt.total_seconds() / 3600).reindex(idx).fillna(0).clip(0, 24 * 30)
+    share = pd.Series(0.0, index=idx)
+    if ex["role"]:
+        role = pd.concat(ex["role"]).groupby(["IncidentId", "EvidenceRole"])["n"].sum().unstack(fill_value=0)
+        role = role.reindex(idx).fillna(0)
+        role.columns = [gf.norm_key(c) for c in role.columns]
+        total = role.sum(axis=1).replace(0, 1)
+        if "impacted" in role:
+            share = role["impacted"] / total
+    cols = [np.log1p(n_alerts), np.log1p(n_rows), np.log1p(n_det), np.log1p(hours), share]
+    names = list(STRUCTURE_NAMES)
+    if ex["entrows"]:
+        er = pd.concat(ex["entrows"]).groupby(["IncidentId", "EntityType"])["n"].sum().unstack(fill_value=0)
+        er = er.reindex(idx).fillna(0)
+        er.columns = [gf.norm_key(c) for c in er.columns]
+        er = er.T.groupby(level=0).sum().T
+        for e in vocab["entities"]:
+            cols.append(np.log1p(er[e]) if e in er else pd.Series(0.0, index=idx))
+            names.append(f"entcount:{e}")
+    return np.column_stack([np.asarray(c, dtype=np.float32) for c in cols]), names
 
 
 def build_matrix(meta: pd.DataFrame, pairs: dict[str, pd.DataFrame], log):
@@ -154,17 +211,21 @@ def importance(name: str, model, names: list[str]) -> list[dict]:
 
 
 def train(csv_paths: list[str], out_dir: str, max_rows: int | None = None, seed: int = 42, fast: bool = False,
-          log=print) -> dict:
+          log=print, structure: bool = False) -> dict:
     t0 = time.time()
     out = Path(out_dir)
     out.mkdir(parents=True, exist_ok=True)
     log(f"Aggregating {len(csv_paths)} file(s) per incident…")
-    meta, pairs = aggregate(csv_paths, max_rows, log)
+    meta, pairs, ex = aggregate(csv_paths, max_rows, log, structure)
     if len(meta) < 200:
         raise SystemExit(f"Only {len(meta)} graded incidents found: need more data")
     X, vocab = build_matrix(meta, pairs, log)
     y = meta["label"].map({l: i for i, l in enumerate(gf.LABELS)}).to_numpy()
     names = gf.feature_names(vocab)
+    if structure:
+        S, sn = structure_matrix(meta, ex, vocab)
+        X, names = np.hstack([X, S]), names + sn
+        log(f"  + {len(sn)} incident-structure features (EXPERIMENT: not servable by Sfumato)")
 
     rng = np.random.default_rng(seed)
     orgs = meta["org"].astype(str).unique()
@@ -206,10 +267,10 @@ def train(csv_paths: list[str], out_dir: str, max_rows: int | None = None, seed:
     artifact = {"model": model, "model_name": best, "version": version, "vocab": vocab, "feature_names": names,
                 "labels": gf.LABELS, "isolation_forest": iso, "ood_threshold": ood_threshold,
                 "sklearn_version": sklearn.__version__, "trained_at": datetime.now(timezone.utc).isoformat(),
-                "dataset": DATASET}
+                "dataset": DATASET, "structure": structure}
     joblib.dump(artifact, out / "guide_model.joblib", compress=3)
     report = {
-        "model_name": best, "version": version, "trained_at": artifact["trained_at"], "dataset": DATASET,
+        "model_name": best, "version": version, "structure_features": structure, "trained_at": artifact["trained_at"], "dataset": DATASET,
         "data": {"rows_read_limit": max_rows, "incidents": int(len(y)), "organisations": int(len(orgs)),
                  "class_balance": {gf.LABELS[i]: int((y == i).sum()) for i in range(len(gf.LABELS))},
                  "split": {"method": split_note, "train": int(len(ytr)), "validation": int(len(yva)), "test": int(len(yte))},
@@ -238,10 +299,22 @@ def main(argv=None) -> int:
     ap.add_argument("--max-rows", type=int, default=None, help="limit rows read (quick runs)")
     ap.add_argument("--seed", type=int, default=42)
     ap.add_argument("--fast", action="store_true", help="smaller models (smoke tests)")
+    ap.add_argument("--structure", action="store_true",
+                    help="EXPERIMENT: add incident-structure features (alert/evidence/detector counts, duration); never published")
     ap.add_argument("--publish-to", help="gs://bucket/prefix | hf://user/repo | folder (needs ARTIFACT_SIGNING_KEY)")
+    ap.add_argument("--min-auc", type=float, default=0.60,
+                    help="do not publish a model whose held-out threat-vs-non-threat ROC-AUC is below this (0 disables)")
     args = ap.parse_args(argv)
-    report = train(args.csv, args.out, args.max_rows, args.seed, args.fast)
+    report = train(args.csv, args.out, args.max_rows, args.seed, args.fast, structure=args.structure)
+    if args.publish_to and args.structure:
+        print("NOT PUBLISHED: --structure models need incident-level counts that a Sfumato alert cannot provide.")
+        return 0
     if args.publish_to:
+        auc = report["test"]["binary_threat_vs_non_threat"]["roc_auc"]
+        if args.min_auc > 0 and auc < args.min_auc:
+            print(f"NOT PUBLISHED: held-out ROC-AUC {auc} is below {args.min_auc} (the model does not beat chance on unseen "
+                  "organisations). Train on more data or improve the features; --min-auc 0 forces publication.")
+            return 3
         key = os.environ.get("ARTIFACT_SIGNING_KEY")
         if not key:
             raise SystemExit("Set ARTIFACT_SIGNING_KEY (same value in Sfumato's .env): remote models must be signed")

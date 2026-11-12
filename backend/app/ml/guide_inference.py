@@ -65,6 +65,21 @@ class GuideModelService:
             return local, f"local folder {local}", {}
         return None, None, {}
 
+    @staticmethod
+    def _quality_gate(metrics: dict | None, min_auc: float) -> None:
+        """Refuse a model whose own held-out ROC-AUC (threat vs non-threat) does not beat chance by a margin."""
+        if min_auc <= 0:
+            return
+        if not metrics:
+            raise ValueError("model rejected: no metrics.json to verify its quality (set ML_ARTIFACT_MIN_AUC=0 to bypass)")
+        try:
+            auc = float(metrics["test"]["binary_threat_vs_non_threat"]["roc_auc"])
+        except (KeyError, TypeError, ValueError):
+            raise ValueError("model rejected: metrics.json has no held-out ROC-AUC")
+        if auc < min_auc:
+            raise ValueError(f"model rejected: held-out ROC-AUC {auc:.3f} is below the minimum {min_auc:.2f} "
+                             "(it does not beat chance on unseen organisations)")
+
     def sync(self) -> dict:
         s = get_settings()
         with self._lock:
@@ -76,11 +91,16 @@ class GuideModelService:
                     self.state = "not_configured"
                     return self.status()
                 art = joblib.load(folder / "guide_model.joblib")
+                if art.get("structure"):
+                    raise ValueError("model rejected: trained with incident-structure features (alert/evidence counts) "
+                                     "that a Sfumato alert cannot provide")
                 if art.get("sklearn_version") != sklearn.__version__:
                     raise ValueError(f"model trained with scikit-learn {art.get('sklearn_version')}, "
                                      f"runtime is {sklearn.__version__}: retrain with the same version")
                 mpath = folder / "metrics.json"
-                self.metrics = json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else None
+                metrics = json.loads(mpath.read_text(encoding="utf-8")) if mpath.exists() else None
+                self._quality_gate(metrics, s.ml_artifact_min_auc)
+                self.metrics = metrics
                 self.artifact, self.meta, self.source = art, meta, source
                 self.loaded_at, self.state = time.time(), "ready"
                 log.info("GUIDE reference model ready: %s (%s)", art["version"], source)
