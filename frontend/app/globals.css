@@ -1,0 +1,62 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: dark;
+  --bg: #03060f;
+}
+
+html,
+body {
+  background: var(--bg);
+  color: #e6edff;
+}
+
+body {
+  background-image:
+    radial-gradient(1200px 600px at 10% -10%, rgba(59, 130, 246, 0.16), transparent 60%),
+    radial-gradient(900px 500px at 100% 0%, rgba(139, 92, 246, 0.12), transparent 60%),
+    radial-gradient(800px 600px at 50% 120%, rgba(34, 211, 238, 0.08), transparent 60%);
+  background-attachment: fixed;
+  -webkit-font-smoothing: antialiased;
+}
+
+@layer components {
+  .glass {
+    @apply rounded-2xl border border-line bg-ink-850/70 shadow-card backdrop-blur-xl;
+  }
+  .glass-hover {
+    @apply transition-colors duration-300 hover:border-cyan-400/30 hover:bg-ink-800/80;
+  }
+  .label {
+    @apply text-[11px] font-medium uppercase tracking-[0.14em] text-slate-400;
+  }
+  .grad-text {
+    @apply bg-gradient-to-r from-cyan-300 via-electric-400 to-violet-400 bg-clip-text text-transparent;
+  }
+  .grid-bg {
+    background-image:
+      linear-gradient(rgba(148, 178, 255, 0.05) 1px, transparent 1px),
+      linear-gradient(90deg, rgba(148, 178, 255, 0.05) 1px, transparent 1px);
+    background-size: 32px 32px;
+  }
+}
+
+::selection {
+  background: rgba(34, 211, 238, 0.3);
+}
+
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(148, 178, 255, 0.2) transparent;
+}
+
+.react-flow__attribution {
+  display: none;
+}
+.react-flow__controls button {
+  background: #0b1430 !important;
+  border-color: rgba(148, 178, 255, 0.15) !important;
+  fill: #cbd5e1 !important;
+}
