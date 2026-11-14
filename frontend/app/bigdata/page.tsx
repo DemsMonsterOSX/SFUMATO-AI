@@ -13,11 +13,20 @@ type Overview = {
   dataset: { name: string; size_gb: number; files: number; source: string; domain: string };
   stages: Stage[];
   results_published: boolean;
+  advanced: null | Advanced;
   results: null | {
     raw_rows: number; clean_rows: number; dropped_rows: number; total_seconds: number; prep_seconds: number;
     eda: { label_counts: Record<string, number>; per_day: { day: string; flows: number; attacks: number }[]; attacks_by_hour: Record<string, number> };
     ml?: { features: number; random_split?: Metrics; time_holdout?: Metrics & { cutoff_day: string }; feature_importances: { feature: string; importance: number }[] };
   };
+};
+
+type Advanced = {
+  samples: Record<string, number>;
+  multiclass: { accuracy: number; macro_f1: number; test_rows: number; per_class: { label: string; support: number; precision: number; recall: number; f1: number }[] };
+  supervised: { fpr_seen_model: number; families: { family: string; test_flows: number; recall_seen: number; recall_unseen: number; fpr_unseen_model: number }[] };
+  anomaly: { k: number; fpr: number; threshold_p99_benign: number; families: { family: string; test_flows: number; recall: number }[] };
+  seconds: number;
 };
 
 const n = (v: number) => v.toLocaleString("en-US");
@@ -49,6 +58,11 @@ export default function BigDataPage() {
   const r = data?.results;
   const labels = r ? Object.entries(r.eda.label_counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count) : [];
   const hours = r ? Array.from({ length: 24 }, (_, h) => ({ hour: h, attacks: r.eda.attacks_by_hour[String(h)] ?? 0 })) : [];
+  const adv = data?.advanced;
+  const unseen = adv ? adv.supervised.families.map((f) => ({
+    family: f.family, seen: f.recall_seen, unseen: f.recall_unseen,
+    anomaly: adv.anomaly.families.find((a) => a.family === f.family)?.recall ?? 0,
+  })) : [];
   const metricRows = r?.ml ? [
     ...(r.ml.random_split ? [{ name: "Random 80/20 split", m: r.ml.random_split }] : []),
     ...(r.ml.time_holdout ? [{ name: `Time hold-out (from ${r.ml.time_holdout.cutoff_day})`, m: r.ml.time_holdout }] : []),
@@ -159,6 +173,46 @@ export default function BigDataPage() {
               <MetricsTable rows={metricRows} />
             </Card>
           )}
+        </>
+      )}
+
+      {adv && (
+        <>
+          <Card className="mt-5">
+            <CardHeader title="Unseen attack families" subtitle="Recall per family: a model that saw the family, the same model trained WITHOUT it, and a KMeans anomaly detector trained on benign traffic only" />
+            <div className="h-[340px]">
+              <ResponsiveContainer>
+                <BarChart data={unseen} margin={{ left: -10, bottom: 50 }}>
+                  <CartesianGrid stroke="rgba(148,178,255,0.06)" vertical={false} />
+                  <XAxis dataKey="family" interval={0} angle={-30} textAnchor="end" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} />
+                  <YAxis domain={[0, 1]} tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+                  <Tooltip contentStyle={tooltipStyle} formatter={(v: number) => v.toFixed(3)} />
+                  <Bar dataKey="seen" name="supervised, family seen" fill="#34d399" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="unseen" name="supervised, family unseen" fill="#f43f5e" radius={[4, 4, 0, 0]} />
+                  <Bar dataKey="anomaly" name="anomaly detector (benign only)" fill="#a78bfa" radius={[4, 4, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+            <p className="mt-3 text-xs text-slate-400">
+              False-positive rate on benign flows: supervised {(adv.supervised.fpr_seen_model * 100).toFixed(2)} % · anomaly detector {(adv.anomaly.fpr * 100).toFixed(2)} % (threshold = 99th percentile of benign distances, k = {adv.anomaly.k}). Samples are capped, see docs/BIGDATA_PROJECT.md.
+            </p>
+          </Card>
+          <Card className="mt-5">
+            <CardHeader title="Attack family classification" subtitle={`Multiclass Random Forest · accuracy ${adv.multiclass.accuracy.toFixed(4)} · macro-F1 ${adv.multiclass.macro_f1.toFixed(4)} on ${n(adv.multiclass.test_rows)} sampled flows`} />
+            <div className="overflow-x-auto">
+              <table className="w-full text-left text-xs">
+                <thead className="text-slate-400"><tr>{["Class", "Support", "Precision", "Recall", "F1"].map((h) => <th key={h} className="px-2 py-2 font-medium">{h}</th>)}</tr></thead>
+                <tbody>
+                  {adv.multiclass.per_class.map((c) => (
+                    <tr key={c.label} className="border-t border-line text-slate-200">
+                      <td className="px-2 py-2">{c.label}</td><td className="px-2 py-2 font-mono">{n(c.support)}</td>
+                      {[c.precision, c.recall, c.f1].map((v, i) => <td key={i} className="px-2 py-2 font-mono">{v.toFixed(3)}</td>)}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
         </>
       )}
 
