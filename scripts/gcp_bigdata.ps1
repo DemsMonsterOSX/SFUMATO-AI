@@ -11,7 +11,7 @@
    .\scripts\gcp_bigdata.ps1 cleanup  delete the BigQuery dataset (the bucket data stays)
 #>
 param(
-  [ValidateSet("setup", "ingest", "smoke", "run", "bq", "report", "cleanup")][string]$Action = "setup",
+  [ValidateSet("setup", "ingest", "smoke", "run", "advanced-smoke", "advanced", "bq", "report", "cleanup")][string]$Action = "setup",
   [string]$Project = "gen-lang-client-0426716352",
   [string]$Bucket = "sfumato-soc-4ab8ab-artifacts",
   [string]$Region = "us-central1",
@@ -32,13 +32,13 @@ function Confirm-Cost($msg) {
   Write-Host $msg -ForegroundColor Yellow
   if (-not $Yes) { $a = Read-Host "Proceed? (y/N)"; if ($a -notmatch '^[yY]') { Write-Host "Cancelled."; exit 1 } }
 }
-function Submit-Spark($name, $inp, $out, $extra) {
+function Submit-Spark($name, $inp, $out, $extra, $job = "spark_pipeline.py") {
   Step "Upload the job"
-  & gcloud storage cp (Join-Path $root "bigdata\spark_pipeline.py") "$base/code/spark_pipeline.py" "--project=$Project" --quiet
+  & gcloud storage cp (Join-Path $root "bigdata\$job") "$base/code/$job" "--project=$Project" --quiet
   Step "Submit Dataproc Serverless batch $name (follow it in the console: Dataproc > Batches)"
   # gcloud.cmd (not gcloud.ps1): the PowerShell wrapper swallows the "--" that separates job arguments
   $cmd = (Get-Command gcloud.cmd).Source
-  $a = @("dataproc", "batches", "submit", "pyspark", "$base/code/spark_pipeline.py", "--project=$Project", "--region=$Region",
+  $a = @("dataproc", "batches", "submit", "pyspark", "$base/code/$job", "--project=$Project", "--region=$Region",
          "--batch=$name", "--version=2.2",
          "--properties=spark.executor.cores=4,spark.dynamicAllocation.maxExecutors=8",
          "--", "--input", $inp, "--output", $out) + $extra
@@ -69,6 +69,14 @@ switch ($Action) {
   "run" {
     Confirm-Cost "Runs the full Spark job on 6.9 GB (up to 8 executors x 4 vCPU, probably 20-60 minutes). Cost NOT measured: check Billing afterwards, and make sure the budget alert exists."
     Submit-Spark ("sfumato-full-" + (Get-Date -Format "MMddHHmm")) "$base/raw" "$base/out" @("--train-rows", "$TrainRows")
+  }
+  "advanced-smoke" {
+    Confirm-Cost "Runs the advanced ML job on the fake sample Parquet (small)."
+    Submit-Spark ("sfumato-adv-smoke-" + (Get-Date -Format "MMddHHmm")) "$base/sample/out/parquet" "$base/sample/out" @("--family-cap", "2000", "--benign-train", "5000", "--benign-test", "2000", "--min-family-rows", "100") "ml_advanced.py"
+  }
+  "advanced" {
+    Confirm-Cost "Runs the advanced ML job (multiclass, leave-one-family-out, KMeans anomaly) on the clean Parquet. Samples are capped; expect 20-40 minutes. Cost not measured."
+    Submit-Spark ("sfumato-adv-" + (Get-Date -Format "MMddHHmm")) "$base/out/parquet" "$base/out" @() "ml_advanced.py"
   }
   "bq" {
     Confirm-Cost "Creates BigQuery dataset $ds and loads the clean Parquet (a few GB; queries are billed per TB scanned, the first TB/month is free)."
