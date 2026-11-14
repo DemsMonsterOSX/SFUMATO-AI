@@ -6,7 +6,7 @@ export const runtime = "nodejs";
 
 const BACKEND = process.env.BACKEND_URL ?? "http://localhost:8000";
 const API_KEY = process.env.SFUMATO_API_KEY ?? (process.env.API_KEYS ?? "sfumato-dev-key-change-me").split(",")[0].trim();
-const ALLOWED = /^(health|status|stats|incidents|cti|soar|ml|ai|observatory|scenarios|schema|settings|audit|knowledge)(\/|$)/;
+const ALLOWED = /^(health|status|stats|incidents|cti|soar|ml|ai|observatory|scenarios|schema|settings|audit|knowledge|bigdata)(\/|$)/;
 
 async function proxy(req: NextRequest, ctx: { params: Promise<{ path: string[] }> }) {
   const { path } = await ctx.params;
