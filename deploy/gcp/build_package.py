@@ -77,7 +77,7 @@ def main() -> None:
         raise SystemExit("frontend/.next/standalone/server.js missing: run without --skip-build")
     DIST.mkdir(exist_ok=True)
     secrets = secret_values()
-    keep_ml = lambda rel: rel.parts[0] in {"models", "evaluation", "datasets"}  # noqa: E731
+    keep_ml = lambda rel: rel.parts[0] in {"models", "evaluation", "datasets", "bigdata"}  # noqa: E731
     with tarfile.open(OUT, "w:gz", compresslevel=9) as tar:
         counts = {
             "backend": add_tree(tar, ROOT / "backend", "backend", secrets, lambda r: r.parts[0] != "app" or "tests" not in r.parts),
