@@ -62,11 +62,28 @@ gcloud auth login ; gcloud config set project <PROJECT_ID>        # billing must
 Defaults point at project `gen-lang-client-0426716352` and bucket `sfumato-soc-4ab8ab-artifacts` (`-Project`, `-Bucket`).
 Every costly step asks for confirmation.
 
+## Results of the real run (14 November 2026, Dataproc Serverless, batch `sfumato-full-11141454`)
+
+Figures are in `ml/bigdata/results.json` (shown on the *Big Data Lab* page) and in BigQuery (`sfumato_bigdata.flows`).
+
+* **Volume and quality:** 16,233,002 raw flows, 16,137,169 kept (95,833 dropped = 0.59 %: embedded headers, `Infinity`/`NaN`,
+  negative durations). Spark total 851 s (cleaning + Parquet 414 s, ML 425 s). The BigQuery table has exactly 16,137,169 rows.
+* **Class balance:** 83.0 % benign, 14 attack families; rarest: SQL Injection 87 flows, Brute Force-XSS 230.
+* **Attacks are scheduled by day** (BigQuery query 2): 14 Feb FTP/SSH brute force, 15 Feb GoldenEye/Slowloris, 16 Feb
+  Hulk/SlowHTTPTest, 20 Feb LOIC-HTTP, 21 Feb HOIC/LOIC-UDP, 22-23 Feb web attacks, 28 Feb-1 Mar infiltration, 2 Mar botnet.
+* **Random Forest, random 80/20 split** (3,228,578 test flows): AUC-ROC 0.990, AUC-PR 0.980, precision 0.983, recall 0.941,
+  F1 0.962 (TP 517,160, FP 8,840, FN 32,214, TN 2,670,364).
+* **Random Forest, time hold-out** (train before 28 Feb, test from 28 Feb; 1,979,608 flows): AUC-ROC 0.710, AUC-PR 0.479,
+  **recall 0.0005** (TP 244, FN 446,586). **The model does not detect attack families it has never seen** (infiltration and
+  botnet appear only in the test days). The random split overstates real-world performance because every family is in the
+  training set. This is the main finding to present, and the motivation for the unseen-family analysis below.
+
 ## Honest status and limits
 
-* **Not yet executed on GCP.** The code compiles and the source listing was checked, but the Spark job has not run (Spark
-  could not run locally on Windows without Hadoop native binaries). Run `smoke` first; expect to fix small issues before `run`.
-  Results, timings and cost in the report must come from a real run: none are claimed here.
+* **Hour-of-day analysis is unreliable.** Timestamps only cover hours 1-12 in the source files (likely a 12-hour clock
+  without AM/PM). Do not draw conclusions from the "by hour" chart; day-level analysis is sound.
+* The label `Infilteration` is the dataset's own spelling.
+* Cost of the run has still not been read from Billing: check it before quoting any figure.
 * Phase 3 (real-time) is **not implemented**; the brief makes it optional. A defensible option is to say that the data is
   bounded and historical, hence batch (CM2: "completeness and repeatability over latency").
 * Binary classification only (attack vs benign). A time hold-out may show lower recall on attack families absent from the

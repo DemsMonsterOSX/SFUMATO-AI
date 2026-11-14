@@ -124,7 +124,7 @@ export default function BigDataPage() {
           </div>
           <div className="mt-5 grid gap-5 xl:grid-cols-2">
             <Card>
-              <CardHeader title="Malicious flows by hour" />
+              <CardHeader title="Malicious flows by hour" subtitle="Caution: source timestamps only span hours 1-12 (probably a 12-hour clock), so this chart is indicative only" />
               <div className="h-[240px]">
                 <ResponsiveContainer>
                   <BarChart data={hours} margin={{ left: -10 }}>

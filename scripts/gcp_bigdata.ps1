@@ -74,11 +74,15 @@ switch ($Action) {
     Confirm-Cost "Creates BigQuery dataset $ds and loads the clean Parquet (a few GB; queries are billed per TB scanned, the first TB/month is free)."
     & gcloud config set project $Project | Out-Null
     & bq --location=US mk --dataset --force "${Project}:$ds"
-    & bq --location=US load --replace --source_format=PARQUET --hive_partitioning_mode=AUTO "--hive_partitioning_source_uri_prefix=$base/out/parquet/" `
+    # column_name_character_map=V2: CICFlowMeter names such as "Flow Byts/s" are not valid with the default map
+    & bq --location=US load --replace --source_format=PARQUET --column_name_character_map=V2 --hive_partitioning_mode=AUTO "--hive_partitioning_source_uri_prefix=$base/out/parquet/" `
       "${Project}:$ds.flows" "$base/out/parquet/*"
-    $sql = (Get-Content (Join-Path $root "bigdata\queries.sql") -Raw).Replace("DATASET", "$Project.$ds")
+    if ($LASTEXITCODE -ne 0) { Write-Host "BigQuery load failed" -ForegroundColor Red; exit 1 }
+    $lines = Get-Content (Join-Path $root "bigdata\queries.sql") | Where-Object { $_ -notmatch '^\s*--' }
+    $sql = ($lines -join "`n").Replace("DATASET", "$Project.$ds")
     foreach ($q in ($sql -split ";\s*\r?\n" | Where-Object { $_.Trim() })) {
-      Write-Host "`n$($q.Trim())" -ForegroundColor DarkGray
+      $q = ($q -replace '\s*\r?\n\s*', ' ').Trim().TrimEnd(';')   # bq.cmd (cmd.exe) truncates arguments at a newline
+      Write-Host "`n$q" -ForegroundColor DarkGray
       & bq --location=US query --use_legacy_sql=false --format=pretty $q
     }
   }
