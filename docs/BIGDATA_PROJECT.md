@@ -78,6 +78,27 @@ Figures are in `ml/bigdata/results.json` (shown on the *Big Data Lab* page) and 
   botnet appear only in the test days). The random split overstates real-world performance because every family is in the
   training set. This is the main finding to present, and the motivation for the unseen-family analysis below.
 
+## Advanced ML: multiclass and unseen families (batch `sfumato-adv-11141524`, 998 s)
+
+Samples are capped (400k benign for training, 200k for testing, up to ~40k flows per family), so these figures describe the
+samples, not the 16.2 M flows. Raw figures: `ml/bigdata/advanced.json`.
+
+* **Multiclass Random Forest:** accuracy 0.931, macro-F1 0.778. Near perfect on most families (Hulk, GoldenEye, SSH brute
+  force, HOIC, LOIC-HTTP, Bot: F1 0.99-1.00). Weak on **Infiltration (recall 0.21)**, SlowHTTPTest (0.53), the web attacks
+  (Brute Force-Web 0.22, XSS 0.46) and **SQL Injection (0, only 31 test flows)**: rare or behaviourally close to benign traffic.
+* **Seen vs unseen (supervised binary, ~1.1 % false positives on benign flows):** a family never shown to the model is detected
+  very unevenly: recall unseen / seen = SlowHTTPTest 1.00 / 1.00, FTP brute force 1.00 / 1.00, HOIC 0.985 / 0.999, Hulk 0.917 /
+  1.00, Slowloris 0.66 / 0.99, GoldenEye 0.39 / 1.00, **SSH brute force 0.06 / 1.00, LOIC-HTTP 0.002 / 1.00, Bot 0.000 / 0.999,
+  Infiltration 0.006 / 0.23**. Families that resemble another one in the training set (DoS and DDoS variants) transfer; families
+  with their own behaviour do not. This explains the time hold-out result (infiltration and botnet only appear in the test days).
+* **Unsupervised anomaly detector (KMeans on benign flows only, 1.14 % false positives): it did not work.** Recall is about 0
+  for nearly every family (Slowloris 0.23 is the best, Infiltration 0.03). My expectation was that it would complement the
+  supervised model on unseen families; the measurement says no, with this feature set, log transform and k = 20. Possible
+  causes (not tested): heavy-tailed features, benign traffic too diverse for 20 centroids, attacks inside the benign
+  envelope. A fair next step would be another detector (isolation forest on a sample) or more clusters.
+* Practical conclusion for a SOC: a supervised model is reliable on known families and on close variants, but is blind to novel
+  behaviour, and this simple anomaly detector does not close the gap. Say it plainly in the report.
+
 ## Honest status and limits
 
 * **Hour-of-day analysis is unreliable.** Timestamps only cover hours 1-12 in the source files (likely a 12-hour clock
