@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, Send, Sparkles, X } from "lucide-react";
+import { Send, X } from "lucide-react";
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { Badge } from "@/components/ui";
 import { useApi } from "@/hooks/useApi";
@@ -42,17 +42,23 @@ export function DaVinciAgent() {
 
   return (
     <>
-      <button onClick={() => setOpen((o) => !o)} aria-label="Ouvrir Da Vinci AI"
-        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full border border-cyan-400/30 bg-gradient-to-br from-cyan-500/90 via-electric-500/90 to-violet-500/90 px-4 py-3 text-sm font-medium text-white shadow-glow transition hover:scale-[1.03]">
-        {open ? <X className="h-4 w-4" /> : <Sparkles className="h-4 w-4" />}
-        <span className="hidden sm:inline">Da Vinci AI</span>
+      <button onClick={() => setOpen((o) => !o)} aria-label={open ? "Fermer Da Vinci AI" : "Ouvrir Da Vinci AI"}
+        className="fixed bottom-5 right-5 z-50 flex items-center gap-2 rounded-full border border-cyan-400/40 bg-ink-950/90 py-1.5 pl-1.5 pr-4 text-sm font-medium text-white shadow-glow backdrop-blur transition hover:scale-[1.03]">
+        {open ? (
+          <span className="grid h-10 w-10 place-items-center rounded-full bg-ink-800"><X className="h-4 w-4" /></span>
+        ) : (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src="/davinci/icon.webp" alt="" width={40} height={40} className="h-10 w-10 rounded-full ring-1 ring-cyan-400/50" />
+        )}
+        <span className="hidden sm:inline">Da Vinci <span className="bg-gradient-to-r from-cyan-300 to-violet-400 bg-clip-text font-semibold text-transparent">AI</span></span>
       </button>
       {open && (
         <div role="dialog" aria-label="Da Vinci AI"
           className="fixed bottom-20 right-3 z-50 flex h-[min(560px,calc(100vh-7rem))] w-[min(400px,calc(100vw-1.5rem))] flex-col overflow-hidden rounded-2xl border border-line bg-ink-950/95 shadow-2xl backdrop-blur-xl sm:right-5">
           <div className="flex items-center justify-between border-b border-line px-4 py-3">
             <div className="flex items-center gap-2">
-              <Bot className="h-4 w-4 text-cyan-300" />
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/davinci/icon.webp" alt="" width={32} height={32} className="h-8 w-8 rounded-full ring-1 ring-cyan-400/40" />
               <div className="leading-tight">
                 <div className="text-sm font-semibold text-white">Da Vinci AI</div>
                 <div className="text-[10px] text-slate-400">Questions sur les résultats Big Data</div>
@@ -68,6 +74,8 @@ export function DaVinciAgent() {
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3 text-sm">
             {msgs.length === 0 && (
               <div className="space-y-2">
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/davinci/logo.webp" alt="Da Vinci AI" width={120} height={120} className="mx-auto h-28 w-28 object-contain" />
                 <p className="text-xs leading-relaxed text-slate-400">
                   Je réponds à partir des résultats publiés (Spark, BigQuery, ML avancé), jamais à partir de ma mémoire. {info && !info.llm_available && "Aucune clé IA n'est configurée : j'utilise des règles déterministes."}
                 </p>
