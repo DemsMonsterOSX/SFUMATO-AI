@@ -13,6 +13,7 @@ from pydantic import BaseModel, Field
 from app.core.config import get_settings
 from app.agents.providers import CALLERS, LLMError, llm_slot, resolve_provider
 from app.core.security import require_api_key
+from app.services import cve as cve_lib
 from app.services import davinci
 from app.services import procedures as proc_lib
 
@@ -75,7 +76,7 @@ async def agent_info():
 @router.post("/agent", summary="Ask Da Vinci AI a question about the Big Data results (rules, optionally rewritten by an LLM)")
 async def agent(req: AgentRequest):
     results, advanced = _load("results.json"), _load("advanced.json")
-    extra = {"attacks_by_day": _load("attacks_by_day.json")}
+    extra = {"attacks_by_day": _load("attacks_by_day.json"), "cve": cve_lib.summary()[0]}
     question = davinci.clean_question(req.question)
     base = davinci.rules_answer(question, results, advanced, extra)
     # response procedures: retrieved when the question asks what to do, or when no Big Data rule matched
@@ -87,7 +88,7 @@ async def agent(req: AgentRequest):
             base = davinci.procedures_answer(hits)
             extra["procedures"] = hits
     out = {**base, "engine": "rules", "model": "sfumato-davinci-rules-v1", "note": None}
-    if not req.use_llm or (not results and not advanced and not hits):
+    if not req.use_llm or (not results and not advanced and not hits and not extra.get("cve")):
         return out
     prov = await resolve_provider()
     if prov["selected"] == "deterministic":

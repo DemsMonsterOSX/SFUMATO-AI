@@ -109,6 +109,23 @@ def _anomaly(r, a, d):
             f"varié pour 20 centres, attaques dans l'enveloppe normale."), ["advanced.json"]
 
 
+def _cve(r, a, d):
+    c = (d or {}).get("cve")
+    if not c:
+        return "Le flux de vulnérabilités n'a pas encore été publié : lance l'ingestion (bigdata/cve_ingest.py).", []
+    k, n, e = c["kev"], c["nvd"], c["epss"]
+    sev = n["by_severity"]
+    last = ", ".join(f"{v['id']} ({v['vendor']} {v['product']}, ajouté le {v['added']})" for v in k["recent"][:3])
+    top = e["top"][0] if e["top"] else None
+    txt = (f"Sur les {c['window_days']} derniers jours : {_n(n['published_in_window'])} CVE publiées dans le NVD "
+           f"(critiques {sev.get('CRITICAL', 0)}, hautes {sev.get('HIGH', 0)}, moyennes {sev.get('MEDIUM', 0)}, sans score {sev.get('UNSCORED', 0)} : "
+           f"le score est souvent absent les premiers jours). Le catalogue CISA KEV compte {_n(k['total'])} vulnérabilités exploitées, "
+           f"dont {k['added_in_window']} ajoutées sur la période et {_n(k['ransomware_known'])} liées à des rançongiciels. Dernières entrées KEV : {last}.")
+    if top:
+        txt += f" Plus forte probabilité d'exploitation (EPSS) parmi les CVE récentes : {top['id']} ({top['epss']['epss']:.2f})."
+    return txt + " Priorité : une CVE présente dans le KEV passe avant le score CVSS (voir la procédure PROC-128).", ["cves/summary"]
+
+
 def _cost(r, a, d):
     return ("Le coût du run n'a pas été relevé : il faut le lire dans Billing (console GCP). Je ne donne aucun montant. "
             "Les calculs Spark sont facturés à l'usage ; restent un peu de stockage (bucket, BigQuery) et le disque de la VM."), ["docs/BIGDATA_PROJECT.md"]
@@ -146,6 +163,7 @@ def _pipeline(r, a, d):
 
 
 RULES: list[tuple[tuple[str, ...], Callable]] = [
+    (("cve", "kev", "vulnerabilite", "epss", "cvss", "nvd", "faille", "vulnerab"), _cve),
     (("cout", "coute", "prix", "factur", "cost", "budget", "billing", "euro", "dollar"), _cost),
     (("combien", "volume", "flux", "lignes", "taille", "rows", "how many", "nettoy", "qualite", "dropped", "clean"), _volume),
     (("chronolog", "holdout", "hold-out", "temporel", "time split", "pourquoi", "mauvais"), _holdout),
@@ -213,6 +231,11 @@ def procedures_answer(hits: list[dict]) -> dict:
 
 def llm_context(results: dict | None, advanced: dict | None, extra: dict | None) -> str:
     ctx: dict[str, Any] = {}
+    if extra and extra.get("cve"):
+        c = extra["cve"]
+        ctx["cve_feed"] = {"window_days": c["window_days"], "kev": {k: v for k, v in c["kev"].items() if k != "recent"} | {"recent": c["kev"]["recent"][:15]},
+                           "nvd": {k: v for k, v in c["nvd"].items() if k not in ("top_cvss", "per_day")}, "epss_top": c["epss"]["top"][:10],
+                           "limitations": c["limitations"]}
     if extra and extra.get("procedures"):
         ctx["procedures_draft_not_validated"] = extra["procedures"]
     if results:
