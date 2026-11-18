@@ -1,0 +1,10 @@
+{
+ "count": 102,
+ "built_at": "2026-11-18T20:46:08.011532+00:00",
+ "sha256": "e3699dcf46625e901cb3ba5e97b362ca24e95d248ea1c80765be3749efe0922f",
+ "status": "draft-generated-not-validated",
+ "frameworks": [
+  "NIST SP 800-61",
+  "MITRE ATT&CK"
+ ]
+}

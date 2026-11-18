@@ -185,13 +185,36 @@ SYSTEM = (
     "You are Da Vinci AI, the data-analysis assistant of the Sfumato SOC project. Answer ONLY from the JSON data provided. "
     "If the data does not contain the answer, say so plainly; never invent a number, a dataset or a result. "
     "Reply in the language of the question, in at most 6 sentences, quoting figures exactly as given. "
-    "Mention a limitation when the data carries one (sampled figures, failed experiments). Return JSON: {\"answer\": string}."
+    "Mention a limitation when the data carries one (sampled figures, failed experiments). "
+    "Response procedures in the data are generated drafts that were not validated by a professional: say so when you use them. Return JSON: {\"answer\": string}."
 )
 SCHEMA = {"type": "object", "properties": {"answer": {"type": "string"}}, "required": ["answer"]}
 
 
+PROC_WORDS = ("procedure", "runbook", "que faire", "comment reagir", "comment repondre", "reponse a incident", "playbook", "mitigat",
+              "contenir", "containment", "contain", "eradic", "remediation", "how to respond", "how do i respond", "what to do", "t1", "proc-")
+
+
+def is_procedure_question(question: str) -> bool:
+    q = _norm(question)
+    return any(w in q for w in PROC_WORDS)
+
+
+def procedures_answer(hits: list[dict]) -> dict:
+    """hits: full procedures (id, title, severity, triage, contain, eradicate, recover...). Deterministic summary of the best match."""
+    top = hits[0]
+    others = ", ".join(f"{h['id']} {h['title']}" for h in hits[1:])
+    text = (f"Procédure la plus proche : {top['id']} - {top['title']} (gravité {top['severity']}, tactique {top['tactic']}). "
+            f"Triage : {' ; '.join(top['triage'][:3])}. Confinement : {' ; '.join(top['contain'][:2])}. "
+            f"Éradication : {' ; '.join(top['eradicate'][:2])}." + (f" Voir aussi : {others}." if others else "")
+            + " Rappel : ces procédures sont des brouillons générés, non validés par un professionnel.")
+    return {"answer": text, "sources": [f"procedures/{h['id']}" for h in hits], "matched": "procedures"}
+
+
 def llm_context(results: dict | None, advanced: dict | None, extra: dict | None) -> str:
     ctx: dict[str, Any] = {}
+    if extra and extra.get("procedures"):
+        ctx["procedures_draft_not_validated"] = extra["procedures"]
     if results:
         ctx["results"] = {k: v for k, v in results.items() if k != "json"}
     if advanced:

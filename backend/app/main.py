@@ -13,7 +13,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 
-from app.api import bigdata, incidents, intel, system
+from app.api import bigdata, incidents, intel, procedures, system
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.core.security import RequestGuardMiddleware
@@ -104,6 +104,7 @@ def create_app() -> FastAPI:
     app.include_router(incidents.router)
     app.include_router(intel.router)
     app.include_router(bigdata.router)
+    app.include_router(procedures.router)
     return app
 
 
