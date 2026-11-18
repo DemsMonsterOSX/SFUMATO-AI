@@ -1,0 +1,23 @@
+{
+  "source": "BigQuery query 2 (bigdata/queries.sql) run on sfumato_bigdata.flows, 14 November 2026",
+  "rows": [
+    {"day": "2018-02-14", "label": "FTP-BruteForce", "flows": 193354},
+    {"day": "2018-02-14", "label": "SSH-Bruteforce", "flows": 187589},
+    {"day": "2018-02-15", "label": "DoS attacks-GoldenEye", "flows": 41508},
+    {"day": "2018-02-15", "label": "DoS attacks-Slowloris", "flows": 10990},
+    {"day": "2018-02-16", "label": "DoS attacks-Hulk", "flows": 461912},
+    {"day": "2018-02-16", "label": "DoS attacks-SlowHTTPTest", "flows": 139890},
+    {"day": "2018-02-20", "label": "DDoS attacks-LOIC-HTTP", "flows": 576191},
+    {"day": "2018-02-21", "label": "DDOS attack-HOIC", "flows": 686012},
+    {"day": "2018-02-21", "label": "DDOS attack-LOIC-UDP", "flows": 1730},
+    {"day": "2018-02-22", "label": "Brute Force -Web", "flows": 249},
+    {"day": "2018-02-22", "label": "Brute Force -XSS", "flows": 79},
+    {"day": "2018-02-22", "label": "SQL Injection", "flows": 34},
+    {"day": "2018-02-23", "label": "Brute Force -Web", "flows": 362},
+    {"day": "2018-02-23", "label": "Brute Force -XSS", "flows": 151},
+    {"day": "2018-02-23", "label": "SQL Injection", "flows": 53},
+    {"day": "2018-02-28", "label": "Infilteration", "flows": 68236},
+    {"day": "2018-03-01", "label": "Infilteration", "flows": 92403},
+    {"day": "2018-03-02", "label": "Bot", "flows": 286191}
+  ]
+}

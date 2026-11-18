@@ -8,9 +8,12 @@ import json
 from pathlib import Path
 
 from fastapi import APIRouter, Depends
+from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
+from app.agents.providers import CALLERS, LLMError, llm_slot, resolve_provider
 from app.core.security import require_api_key
+from app.services import davinci
 
 router = APIRouter(prefix="/api/v1/bigdata", tags=["bigdata"], dependencies=[Depends(require_api_key)])
 
@@ -51,5 +54,45 @@ def overview():
         "stages": STAGES,
         "results": results,
         "advanced": _load("advanced.json"),
+        "attacks_by_day": _load("attacks_by_day.json"),
         "results_published": results is not None,
     }
+
+
+class AgentRequest(BaseModel):
+    question: str = Field(min_length=2, max_length=500)
+    use_llm: bool = True
+
+
+@router.get("/agent/info", summary="Da Vinci AI: suggested questions and which engine would answer")
+async def agent_info():
+    prov = await resolve_provider()
+    return {"suggestions": davinci.SUGGESTIONS, "llm_available": prov["selected"] != "deterministic",
+            "provider": prov["selected"], "model": prov["model"], "reason": prov["reason"]}
+
+
+@router.post("/agent", summary="Ask Da Vinci AI a question about the Big Data results (rules, optionally rewritten by an LLM)")
+async def agent(req: AgentRequest):
+    results, advanced = _load("results.json"), _load("advanced.json")
+    extra = {"attacks_by_day": _load("attacks_by_day.json")}
+    question = davinci.clean_question(req.question)
+    base = davinci.rules_answer(question, results, advanced, extra)
+    out = {**base, "engine": "rules", "model": "sfumato-davinci-rules-v1", "note": None}
+    if not req.use_llm or (not results and not advanced):
+        return out
+    prov = await resolve_provider()
+    if prov["selected"] == "deterministic":
+        out["note"] = f"LLM unavailable ({prov['reason']}): rules answer."
+        return out
+    user = ("Question: " + question + "\n\nDraft answer computed by rules (may be incomplete): " + base["answer"]
+            + "\n\nDATA (JSON): " + davinci.llm_context(results, advanced, extra))
+    try:
+        async with llm_slot():
+            data, model = await CALLERS[prov["selected"]](davinci.SYSTEM, user, davinci.SCHEMA)
+        text = str(data.get("answer", "")).strip()
+        if text:
+            return {**base, "answer": text, "engine": prov["selected"], "model": model, "note": None}
+        out["note"] = "The LLM returned an empty answer: rules answer shown."
+    except (LLMError, Exception) as e:  # noqa: BLE001 - never let the pop-up fail because of the LLM
+        out["note"] = f"LLM error ({type(e).__name__}): rules answer shown."
+    return out

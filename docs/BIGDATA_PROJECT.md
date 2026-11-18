@@ -91,11 +91,13 @@ samples, not the 16.2 M flows. Raw figures: `ml/bigdata/advanced.json`.
   1.00, Slowloris 0.66 / 0.99, GoldenEye 0.39 / 1.00, **SSH brute force 0.06 / 1.00, LOIC-HTTP 0.002 / 1.00, Bot 0.000 / 0.999,
   Infiltration 0.006 / 0.23**. Families that resemble another one in the training set (DoS and DDoS variants) transfer; families
   with their own behaviour do not. This explains the time hold-out result (infiltration and botnet only appear in the test days).
-* **Unsupervised anomaly detector (KMeans on benign flows only, 1.14 % false positives): it did not work.** Recall is about 0
-  for nearly every family (Slowloris 0.23 is the best, Infiltration 0.03). My expectation was that it would complement the
-  supervised model on unseen families; the measurement says no, with this feature set, log transform and k = 20. Possible
-  causes (not tested): heavy-tailed features, benign traffic too diverse for 20 centroids, attacks inside the benign
-  envelope. A fair next step would be another detector (isolation forest on a sample) or more clusters.
+* **Unsupervised anomaly detector (KMeans on benign flows only, 1.14 % false positives): mostly failed.** It flags
+  LOIC-UDP (recall 1.00, but only 537 sampled test flows: an extreme behaviour, median 119,742 forward packets per flow) and
+  Slowloris (0.23); recall is about 0 on the 12 other families (Infiltration 0.03, Hulk 0.003, HOIC, Bot, SSH, FTP: 0). My
+  expectation was that it would complement the supervised model on unseen families; the measurement says no, with this feature
+  set, log transform and k = 20. Possible causes (not tested): heavy-tailed features, benign traffic too diverse for 20
+  centroids, attacks inside the benign envelope. A fair next step would be another detector (isolation forest on a sample)
+  or more clusters.
 * Practical conclusion for a SOC: a supervised model is reliable on known families and on close variants, but is blind to novel
   behaviour, and this simple anomaly detector does not close the gap. Say it plainly in the report.
 

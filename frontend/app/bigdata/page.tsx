@@ -1,8 +1,9 @@
 "use client";
 
 import { Cloud, Database, Gauge, HardDrive, Layers } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge, Card, CardHeader, Empty, ErrorNote, KV, PageHeader, Skeleton, Stat } from "@/components/ui";
+import { DaVinciAgent } from "@/components/davinci-agent";
 import { useApi } from "@/hooks/useApi";
 
 const tooltipStyle = { background: "#08102a", border: "1px solid rgba(148,178,255,0.15)", borderRadius: 12, fontSize: 12 };
@@ -14,6 +15,7 @@ type Overview = {
   stages: Stage[];
   results_published: boolean;
   advanced: null | Advanced;
+  attacks_by_day: null | { rows: { day: string; label: string; flows: number }[] };
   results: null | {
     raw_rows: number; clean_rows: number; dropped_rows: number; total_seconds: number; prep_seconds: number;
     eda: { label_counts: Record<string, number>; per_day: { day: string; flows: number; attacks: number }[]; attacks_by_hour: Record<string, number> };
@@ -28,6 +30,28 @@ type Advanced = {
   anomaly: { k: number; fpr: number; threshold_p99_benign: number; families: { family: string; test_flows: number; recall: number }[] };
   seconds: number;
 };
+
+const FAMILY_COLORS = ["#f43f5e", "#fb923c", "#fbbf24", "#a3e635", "#34d399", "#22d3ee", "#60a5fa", "#a78bfa", "#e879f9", "#f472b6", "#94a3b8", "#2dd4bf", "#c084fc", "#facc15"];
+
+/** 2x2 confusion matrix as a heat grid: darker = more flows. */
+function ConfusionGrid({ title, c }: { title: string; c: { tp: number; fp: number; fn: number; tn: number } }) {
+  const max = Math.max(c.tp, c.fp, c.fn, c.tn, 1);
+  const cell = (v: number, label: string, good: boolean) => (
+    <div className="rounded-lg p-3 text-center" style={{ background: `${good ? "rgba(52,211,153," : "rgba(244,63,94,"}${0.08 + 0.55 * Math.sqrt(v / max)})` }}>
+      <div className="font-mono text-sm text-white">{v.toLocaleString("en-US")}</div>
+      <div className="text-[10px] text-slate-300">{label}</div>
+    </div>
+  );
+  return (
+    <div>
+      <div className="mb-2 text-xs font-medium text-slate-300">{title}</div>
+      <div className="grid grid-cols-2 gap-1.5">
+        {cell(c.tn, "benign → benign", true)}{cell(c.fp, "benign → alert (FP)", false)}
+        {cell(c.fn, "attack → missed (FN)", false)}{cell(c.tp, "attack → alert (TP)", true)}
+      </div>
+    </div>
+  );
+}
 
 const n = (v: number) => v.toLocaleString("en-US");
 
@@ -58,6 +82,12 @@ export default function BigDataPage() {
   const r = data?.results;
   const labels = r ? Object.entries(r.eda.label_counts).map(([name, count]) => ({ name, count })).sort((a, b) => b.count - a.count) : [];
   const hours = r ? Array.from({ length: 24 }, (_, h) => ({ hour: h, attacks: r.eda.attacks_by_hour[String(h)] ?? 0 })) : [];
+  const families = data?.attacks_by_day ? Array.from(new Set(data.attacks_by_day.rows.map((x) => x.label))) : [];
+  const perDay = data?.attacks_by_day ? Object.values(data.attacks_by_day.rows.reduce((acc: Record<string, any>, x) => {
+    acc[x.day] = acc[x.day] ?? { day: x.day.slice(5) };
+    acc[x.day][x.label] = x.flows;
+    return acc;
+  }, {})) : [];
   const adv = data?.advanced;
   const unseen = adv ? adv.supervised.families.map((f) => ({
     family: f.family, seen: f.recall_seen, unseen: f.recall_unseen,
@@ -74,7 +104,7 @@ export default function BigDataPage() {
       <ErrorNote error={error} />
       <div className="grid grid-cols-2 gap-4 md:grid-cols-4">
         <Stat label="Dataset" value={<span className="text-2xl">{data ? `${data.dataset.size_gb} GB` : "—"}</span>} sub={data ? `${data.dataset.files} CSV files` : ""} icon={<HardDrive className="h-4 w-4" />} />
-        <Stat label="Raw flows" value={r ? n(r.raw_rows) : "—"} sub={r ? `${n(r.clean_rows)} after cleaning` : "not published yet"} accent="#34d399" icon={<Database className="h-4 w-4" />} />
+        <Stat label="Raw flows" value={r ? `${(r.raw_rows / 1e6).toFixed(2)} M` : "—"} sub={r ? `${n(r.raw_rows)} flows · ${n(r.clean_rows)} after cleaning` : "not published yet"} accent="#34d399" icon={<Database className="h-4 w-4" />} />
         <Stat label="Dropped (quality)" value={r ? n(r.dropped_rows) : "—"} sub="headers, NaN, Infinity, negative durations" accent="#fbbf24" icon={<Layers className="h-4 w-4" />} />
         <Stat label="Spark run" value={r ? `${Math.round(r.total_seconds / 60)} min` : "—"} sub="Dataproc Serverless" accent="#a78bfa" icon={<Cloud className="h-4 w-4" />} />
       </div>
@@ -176,6 +206,34 @@ export default function BigDataPage() {
         </>
       )}
 
+      {perDay.length > 0 && (
+        <Card className="mt-5">
+          <CardHeader title="Which attack on which day" subtitle="Flows per family (BigQuery). Each family occurs on one or two days: this is why a time split hides entire families from training" />
+          <div className="h-[320px]">
+            <ResponsiveContainer>
+              <BarChart data={perDay as any[]} margin={{ left: -5 }}>
+                <CartesianGrid stroke="rgba(148,178,255,0.06)" vertical={false} />
+                <XAxis dataKey="day" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis scale="sqrt" tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                {families.map((f, i) => <Bar key={f} dataKey={f} stackId="a" fill={FAMILY_COLORS[i % FAMILY_COLORS.length]} />)}
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+      )}
+
+      {r?.ml?.random_split && (
+        <Card className="mt-5">
+          <CardHeader title="Confusion matrices" subtitle="Same model, two evaluations: the second one almost never raises an alert on the unseen attacks" />
+          <div className="grid gap-6 md:grid-cols-2">
+            <ConfusionGrid title="Random 80/20 split" c={r.ml.random_split.confusion} />
+            {r.ml.time_holdout && <ConfusionGrid title={`Time hold-out (from ${r.ml.time_holdout.cutoff_day})`} c={r.ml.time_holdout.confusion} />}
+          </div>
+        </Card>
+      )}
+
       {adv && (
         <>
           <Card className="mt-5">
@@ -224,6 +282,7 @@ export default function BigDataPage() {
           <KV k="Source" v={data.dataset.source} />
         </Card>
       )}
+      <DaVinciAgent />
     </div>
   );
 }
