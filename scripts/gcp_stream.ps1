@@ -97,8 +97,11 @@ switch ($Action) {
       foreach ($k in $pairs.Keys) { $f = Join-Path $mdir $k; [IO.File]::WriteAllText($f, [string]$pairs[$k]); $files += "$k=$f" }
       $files += "startup-script=$startup"
       Write-Host (G compute instances add-metadata $n "--zone=$Zone" "--project=$Project" ("--metadata-from-file=" + ($files -join ",")))
-      Write-Host (G compute instances reset $n "--zone=$Zone" "--project=$Project")
-      if ($i -lt 3) { Start-Sleep -Seconds 45 }   # keep a quorum while the next node reboots
+      $st = G compute instances describe $n "--zone=$Zone" "--project=$Project" "--format=value(status)"
+      if ($st -eq "RUNNING") {
+        Write-Host (G compute instances reset $n "--zone=$Zone" "--project=$Project")
+        if ($i -lt 3) { Start-Sleep -Seconds 45 }   # keep a quorum while the next node reboots
+      } else { Write-Host "$n is ${st}: metadata updated, the new startup script runs at the next start" }
     }
     Write-Host "Rebooting; check progress with: .\scripts\gcp_stream.ps1 status" -ForegroundColor Green
   }
@@ -108,7 +111,7 @@ switch ($Action) {
     New-Item -ItemType Directory $stage | Out-Null
     $tgz = Join-Path $stage "app.tgz"
     $src = Join-Path $root "streaming"
-    tar -czf $tgz -C $src common.py producer.py scorer.py cve_bridge.py cve_consumer.py requirements.txt
+    tar -czf $tgz -C $src common.py producer.py scorer.py cve_bridge.py cve_consumer.py controller.py stress_producer.py requirements.txt
     $sha = (Get-FileHash $tgz -Algorithm SHA256).Hash.ToLower()
     $req = (Get-FileHash (Join-Path $src "requirements.txt") -Algorithm SHA256).Hash.ToLower()
     $man = Join-Path $stage "manifest.json"
@@ -123,8 +126,16 @@ switch ($Action) {
     Write-Host "App version $sha uploaded. The VMs install it within a minute (first install: pip, 2 to 4 minutes)." -ForegroundColor Green
   }
   { $_ -in "run", "halt" } {
-    $roles = if ($Action -eq "run") { @{ 1 = "producer,scorer,cve-bridge"; 2 = "scorer,cve-consumer"; 3 = "scorer" } } else { @{ 1 = ""; 2 = ""; 3 = "" } }
-    $envText = (@("SCENARIO=$Scenario", "RATE=$Rate", "THRESHOLD=0.5") -join "`n")
+    $roles = if ($Action -eq "run") { @{ 1 = "producer,scorer,cve-bridge,controller"; 2 = "scorer,cve-consumer"; 3 = "scorer" } } else { @{ 1 = ""; 2 = ""; 3 = "" } }
+    # shared secret between the dashboard backend and the stress controller (internal network only); kept in secrets/, git-ignored
+    $tokFile = Join-Path $root "secrets\stream-control-token.txt"
+    if (-not (Test-Path $tokFile)) {
+      New-Item -ItemType Directory -Force (Split-Path $tokFile) | Out-Null
+      $bytes = New-Object byte[] 24; [Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+      Set-Content -Path $tokFile -Value (($bytes | ForEach-Object { $_.ToString("x2") }) -join "") -Encoding ASCII
+    }
+    $ctoken = (Get-Content $tokFile -Raw).Trim()
+    $envText = (@("SCENARIO=$Scenario", "RATE=$Rate", "THRESHOLD=0.5", "CONTROL_TOKEN=$ctoken") -join "`n")
     foreach ($i in 1..3) {
       $n = "sfumato-kafka-$i"
       $mdir = Join-Path ([IO.Path]::GetTempPath()) "sfumato-kafka-meta-$i"

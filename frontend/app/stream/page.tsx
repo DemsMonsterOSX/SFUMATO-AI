@@ -1,9 +1,11 @@
 "use client";
 
-import { Activity, Radio, Server, ShieldCheck, Zap } from "lucide-react";
-import { Bar, BarChart, CartesianGrid, Cell, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
-import { Badge, Card, CardHeader, Empty, ErrorNote, PageHeader, Skeleton, Stat } from "@/components/ui";
+import { Activity, Gauge, Radio, Server, ShieldCheck, Zap } from "lucide-react";
+import { useState } from "react";
+import { Bar, BarChart, CartesianGrid, Cell, Line, LineChart, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
+import { Badge, Button, Card, CardHeader, Empty, ErrorNote, PageHeader, Skeleton, Stat } from "@/components/ui";
 import { useApi } from "@/hooks/useApi";
+import { api } from "@/lib/api";
 
 const tooltipStyle = { background: "#08102a", border: "1px solid rgba(148,178,255,0.15)", borderRadius: 12, fontSize: 12 };
 const n = (v: number) => v.toLocaleString("en-US");
@@ -26,6 +28,88 @@ type Overview = {
     throughput: { producer_flows_per_s: number; note: string };
   };
 };
+
+
+type StressStep = { target: number; producers: number; produced_per_s: number; consumed_per_s: number; lag_end: number; p95_latency_ms: number | null; errors: number; passed: boolean; reason: string | null };
+type Stress = {
+  reachable: boolean; reason?: string; status?: string; steps?: StressStep[]; max_sustainable?: number | null; current_target?: number | null; error?: string;
+  drain_seconds?: number; lag_after_drain?: number; duration_s?: number; verdict?: string; active_scorers?: number; scenario?: string; finished_at?: number;
+  last?: Omit<Stress, "reachable" | "last"> | null;
+};
+
+/** Stress test: ramps the flow rate step by step and reports the highest rate the scorers keep up with. */
+function StressCard() {
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const { data, reload } = useApi<Stress>("stream/stress", 3000);
+  const running = data?.status === "running";
+  const view = data?.reachable ? data : data?.last ? { ...data.last, reachable: false, reason: data.reason } : data;
+  const steps = view?.steps ?? [];
+
+  async function start() {
+    if (!window.confirm("Run the stress test?\n\nIt raises the flow rate step by step (300 up to 7,200 flows per second, 30 seconds per step, about 3 to 5 minutes in total) on the Kafka cluster and stops at the first rate the scorers cannot keep up with. It adds a little cloud cost and its flows appear in the live counters.")) return;
+    setBusy(true);
+    setErr(null);
+    try {
+      await api("stream/stress", { method: "POST", body: JSON.stringify({ max_rate: 7200, step_seconds: 30 }) });
+      reload();
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : String(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Card className="mt-5">
+      <CardHeader title="Stress test" subtitle="Finds the highest flow rate the pipeline sustains: the producers ramp up, the scorers must keep the backlog under three seconds of traffic" icon={<Gauge className="h-4 w-4" />}
+        right={<Button onClick={start} disabled={busy || running || !data?.reachable}>{running ? `Running… ${view?.current_target ?? ""} flows/s` : "Run stress test"}</Button>} />
+      {!data?.reachable && <p className="text-xs text-amber-200">The streaming cluster is not reachable: {data?.reason ?? "checking…"} Start it with <span className="font-mono">scripts\gcp_stream.ps1 start</span> then <span className="font-mono">run</span>. {data?.last ? "The last recorded result is shown below." : ""}</p>}
+      {err && <p className="mt-2 text-xs text-red-300">{err}</p>}
+      {view?.status === "error" && <p className="mt-2 text-xs text-red-300">The test could not run: {view.error}</p>}
+      {steps.length > 0 && (
+        <>
+          <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-200">
+            <Badge color={view?.max_sustainable ? "#34d399" : "#f43f5e"}>max sustainable: {view?.max_sustainable ? `${n(view.max_sustainable)} flows/s` : "below the first step"}</Badge>
+            {view?.verdict && <span className="text-slate-400">{view.verdict}</span>}
+            {view?.drain_seconds !== undefined && <span className="text-slate-400">backlog drained in {view.drain_seconds}s</span>}
+            {view?.active_scorers !== undefined && <span className="text-slate-400">{view.active_scorers} scorers active</span>}
+          </div>
+          <div className="mt-3 h-[220px]">
+            <ResponsiveContainer>
+              <LineChart data={steps} margin={{ left: -5 }}>
+                <CartesianGrid stroke="rgba(148,178,255,0.06)" vertical={false} />
+                <XAxis dataKey="target" tick={{ fill: "#94a3b8", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Legend wrapperStyle={{ fontSize: 10 }} />
+                <Line type="monotone" dataKey="target" name="target (flows/s)" stroke="#64748b" strokeDasharray="4 4" dot={false} />
+                <Line type="monotone" dataKey="produced_per_s" name="produced" stroke="#3b82f6" />
+                <Line type="monotone" dataKey="consumed_per_s" name="consumed (scored)" stroke="#34d399" />
+              </LineChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-3 overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="text-slate-400"><tr>{["Target /s", "Producers", "Produced /s", "Consumed /s", "Backlog at end", "p95 latency", "Errors", "Result"].map((h) => <th key={h} className="px-2 py-2 font-medium">{h}</th>)}</tr></thead>
+              <tbody>
+                {steps.map((r) => (
+                  <tr key={r.target} className="border-t border-line text-slate-200">
+                    <td className="px-2 py-2 font-mono">{n(r.target)}</td><td className="px-2 py-2 font-mono">{r.producers}</td>
+                    <td className="px-2 py-2 font-mono">{n(r.produced_per_s)}</td><td className="px-2 py-2 font-mono">{n(r.consumed_per_s)}</td>
+                    <td className="px-2 py-2 font-mono">{n(r.lag_end)}</td><td className="px-2 py-2 font-mono">{r.p95_latency_ms ?? "—"} ms</td><td className="px-2 py-2 font-mono">{r.errors}</td>
+                    <td className="px-2 py-2">{r.passed ? <Badge color="#34d399">sustained</Badge> : <Badge color="#f43f5e" title={r.reason ?? ""}>{r.reason ?? "failed"}</Badge>}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-2 text-[11px] text-slate-500">A step is sustained when the scorers consume at least 95 % of what is produced and the backlog stays under three seconds of traffic. The maximum found is the limit of this setup (three e2-small VMs, Python scorers), not of Kafka itself.</p>
+        </>
+      )}
+    </Card>
+  );
+}
 
 export default function StreamPage() {
   const { data, error } = useApi<Overview>("stream/overview", 5000);
@@ -50,6 +134,8 @@ export default function StreamPage() {
             <Stat label="Throughput" value={data.active ? `${live?.throughput_per_s ?? 0}/s` : r ? `${r.throughput.producer_flows_per_s}/s` : "—"} sub={data.active ? "flows scored now" : "rate tested (not a maximum)"} accent="#a78bfa" icon={<Zap className="h-4 w-4" />} />
             <Stat label="Replication" value={r ? `${Object.values(r.cluster.topics)[0].replication}x` : "—"} sub={r ? `min in-sync replicas ${r.cluster.min_insync_replicas}` : ""} accent="#fbbf24" icon={<ShieldCheck className="h-4 w-4" />} />
           </div>
+
+          <StressCard />
 
           {data.live_available && data.scorers.length > 0 && (
             <Card className="mt-5">

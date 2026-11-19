@@ -7,6 +7,7 @@ A component is "active" when its document was refreshed within the last 30 secon
 from __future__ import annotations
 
 import json
+import os
 import re
 import time
 import urllib.parse
@@ -81,3 +82,37 @@ def overview() -> dict:
                        "consumed": sum(s.get("consumed", 0) for s in scorers), "throughput_per_s": round(sum(s["throughput_per_s"] for s in scorers if s["active"]), 1),
                        "per_label": per_label},
             "results": results()}
+
+
+# ---- stress test: relayed to the controller that runs on kafka-1 (internal network, shared token) -------------------------------
+def _control():
+    url = os.environ.get("STREAM_CONTROL_URL", "").rstrip("/")
+    token = os.environ.get("STREAM_CONTROL_TOKEN", "")
+    return url, token
+
+
+def stress_status() -> dict:
+    url, token = _control()
+    if not url or not token:
+        return {"reachable": False, "reason": "the stress controller is not configured on this deployment"}
+    try:
+        with httpx.Client(timeout=4.0) as c:
+            r = c.get(f"{url}/stress", headers={"X-Token": token})
+        if r.status_code == 200:
+            return {"reachable": True, **r.json()}
+        return {"reachable": False, "reason": f"controller answered HTTP {r.status_code}"}
+    except Exception as e:
+        return {"reachable": False, "last": live().get("stress-last"),
+                "reason": "the streaming cluster is not running or the controller is stopped (" + type(e).__name__ + ")"}
+
+
+def stress_start(max_rate: int, step_seconds: int) -> tuple[int, dict]:
+    url, token = _control()
+    if not url or not token:
+        return 503, {"detail": "the stress controller is not configured on this deployment"}
+    try:
+        with httpx.Client(timeout=8.0) as c:
+            r = c.post(f"{url}/stress", headers={"X-Token": token}, json={"max_rate": max_rate, "step_seconds": step_seconds})
+        return r.status_code, r.json()
+    except Exception as e:
+        return 503, {"detail": "the streaming cluster is not running or the controller is stopped (" + type(e).__name__ + ")"}

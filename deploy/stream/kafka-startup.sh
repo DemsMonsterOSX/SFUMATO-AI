@@ -154,7 +154,7 @@ if get stream/code/manifest.json /tmp/stream-manifest.json 2>/dev/null; then
     chown -R sfstream:sfstream $APP; CHANGED=1
   fi
 fi
-for role in scorer producer cve-bridge cve-consumer; do
+for role in scorer producer cve-bridge cve-consumer controller; do
   script=${role//-/_}; unit=sfumato-$role.service
   if [ ! -f /etc/systemd/system/$unit ]; then
     cat > /etc/systemd/system/$unit <<UNIT
