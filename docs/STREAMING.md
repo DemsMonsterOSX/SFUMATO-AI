@@ -65,6 +65,23 @@ group (partitions 4-5) and the lag of the three scorers fell to about 15-20 mess
 
 Results file: `ml/stream/results.json`.
 
+## Stress test (button on the Live Stream page)
+
+The controller on kafka-1 raises the rate in steps (300, 600, 1,200, 2,400, 4,800, 7,200 flows/s, 30 s each) and reads the Kafka offsets:
+produced per second, consumed (scored) per second and the backlog. A step passes when the scorers consume at least 95 % of what is produced
+and the backlog stays under three seconds of traffic. It measures **both stages**: ingestion into Kafka (producers writing with acks=all,
+replication 3) and processing (the three scorers), not the CVE batch job and not the HTTP API.
+
+| Run | Conditions | Highest rate consumed without falling behind | Limit seen |
+|---|---|---|---|
+| 1 | scorers and replay only, method not yet corrected | 6,472 flows/s | producer on one VM |
+| 2 | corrected method, Flink and log shipping added on the same VMs | **4,078 flows/s** | producer on one VM |
+
+In both runs the scorers kept up and the producer plateaued, so these are **lower bounds** of the scorers, not their ceiling. The difference
+between runs comes from the extra load on the same three small VMs, which shows how soft such a figure is: quote it with its conditions. The method was
+corrected after run 1: the regular producer's rate is subtracted from the stress producers, the backlog is purged and three active scorers
+are required before the first step. Raw figures: `ml/stream/results.json` (`stress_tests`).
+
 ## Cost and budget
 
 Estimates from public prices as I know them, **not verified in the pricing calculator and not read from Billing**:

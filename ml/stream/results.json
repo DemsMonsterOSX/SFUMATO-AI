@@ -2,32 +2,198 @@
   "measured_on": "2026-11-19",
   "measured_by": "streaming/ applications on the 3-VM Kafka cluster (scripts/gcp_stream.ps1)",
   "cluster": {
-    "kafka_version": "4.1.2", "mode": "KRaft (each node is broker and controller)", "brokers": 3, "machine": "e2-small (2 GB RAM) Spot",
-    "topics": {"network-flows": {"partitions": 6, "replication": 3}, "alerts": {"partitions": 3, "replication": 3},
-               "cve-events": {"partitions": 3, "replication": 3}, "network-flows-dlq": {"partitions": 1, "replication": 3}},
-    "min_insync_replicas": 2, "producer": "acks=all, idempotent", "consumers": "group of 3 scorers, offsets committed after the alerts are delivered (at-least-once)"
+    "kafka_version": "4.1.2",
+    "mode": "KRaft (each node is broker and controller)",
+    "brokers": 3,
+    "machine": "e2-small (2 GB RAM) Spot",
+    "topics": {
+      "network-flows": {
+        "partitions": 6,
+        "replication": 3
+      },
+      "alerts": {
+        "partitions": 3,
+        "replication": 3
+      },
+      "cve-events": {
+        "partitions": 3,
+        "replication": 3
+      },
+      "network-flows-dlq": {
+        "partitions": 1,
+        "replication": 3
+      }
+    },
+    "min_insync_replicas": 2,
+    "producer": "acks=all, idempotent",
+    "consumers": "group of 3 scorers, offsets committed after the alerts are delivered (at-least-once)"
   },
   "scenarios": {
     "known": {
       "description": "model trained on 80 % of the sample, replay of the 20 % held out (all attack families are known to the model)",
-      "rate_flows_per_s": 300, "flows_scored": 71485,
-      "confusion": {"tp": 41163, "fp": 438, "fn": 3010, "tn": 26874}, "precision": 0.9895, "recall": 0.9319,
-      "offline_reference": {"precision": 0.9898, "recall": 0.9303}
+      "rate_flows_per_s": 300,
+      "flows_scored": 71485,
+      "confusion": {
+        "tp": 41163,
+        "fp": 438,
+        "fn": 3010,
+        "tn": 26874
+      },
+      "precision": 0.9895,
+      "recall": 0.9319,
+      "offline_reference": {
+        "precision": 0.9898,
+        "recall": 0.9303
+      }
     },
     "unseen": {
       "description": "model trained on the days before 2018-02-28, replay of 2018-02-28 and later (Infilteration and Bot never seen)",
-      "rate_flows_per_s": 300, "flows_scored": 46097,
-      "confusion": {"tp": 52, "fp": 32, "fn": 34209, "tn": 11804}, "precision": 0.619, "recall": 0.0015,
-      "per_label": {"Infilteration": {"flows": 17148, "flagged": 52}, "Bot": {"flows": 17113, "flagged": 0}, "Benign": {"flows": 11836, "flagged": 32}},
-      "offline_reference": {"precision": 0.5876, "recall": 0.0014}
+      "rate_flows_per_s": 300,
+      "flows_scored": 46097,
+      "confusion": {
+        "tp": 52,
+        "fp": 32,
+        "fn": 34209,
+        "tn": 11804
+      },
+      "precision": 0.619,
+      "recall": 0.0015,
+      "per_label": {
+        "Infilteration": {
+          "flows": 17148,
+          "flagged": 52
+        },
+        "Bot": {
+          "flows": 17113,
+          "flagged": 0
+        },
+        "Benign": {
+          "flows": 11836,
+          "flagged": 32
+        }
+      },
+      "offline_reference": {
+        "precision": 0.5876,
+        "recall": 0.0014
+      }
     }
   },
   "fault_tolerance_test": {
-    "date": "2026-11-19", "action": "sfumato-kafka-3 (one broker and one scorer) stopped at 11:15:14 while 300 flows/s were flowing, restarted at 11:18:25",
+    "date": "2026-11-19",
+    "action": "sfumato-kafka-3 (one broker and one scorer) stopped at 11:15:14 while 300 flows/s were flowing, restarted at 11:18:25",
     "producer_errors": 0,
     "during_failure": "the two remaining scorers took over the 6 partitions (0-1-2 and 3-4-5) and kept consuming",
     "after_restart": "the restarted VM rejoined the group (partitions 4-5) and the consumer lag of the three scorers fell to about 15-20 messages each",
-    "limits": ["Only one broker failure was tested (replication 3, min in-sync 2 tolerates one).", "The counters of the restarted scorer restart from zero, so cumulative totals are not comparable across the restart.", "Processing is at-least-once: a few flows may be scored twice after a failover.", "No data-loss audit (sent versus processed exactly) was performed."]
+    "limits": [
+      "Only one broker failure was tested (replication 3, min in-sync 2 tolerates one).",
+      "The counters of the restarted scorer restart from zero, so cumulative totals are not comparable across the restart.",
+      "Processing is at-least-once: a few flows may be scored twice after a failover.",
+      "No data-loss audit (sent versus processed exactly) was performed."
+    ]
   },
-  "throughput": {"producer_flows_per_s": 300, "scorer_latency_p50_ms": "about 550 (includes batching and queueing, e2-small)", "note": "300 flows/s was the tested rate, not a measured maximum"}
+  "throughput": {
+    "producer_flows_per_s": 300,
+    "scorer_latency_p50_ms": "about 550 (includes batching and queueing, e2-small)",
+    "note": "300 flows/s was the tested rate, not a measured maximum"
+  },
+  "stress_tests": [
+    {
+      "date": "2026-11-19",
+      "run": "first (before the method was corrected)",
+      "conditions": "3 Kafka VMs running brokers, scorers and the regular 300 flows/s replay producer; Flink not yet running",
+      "highest_target_consumed_without_backlog": 4800,
+      "best_step": {
+        "target": 7200,
+        "produced_per_s": 6463,
+        "consumed_per_s": 6472,
+        "lag_end": 81,
+        "errors": 0
+      },
+      "limit_seen": "producer on one VM (6,463 of 7,200 flows/s produced); the scorers kept up",
+      "method_flaws": [
+        "the regular producer's 300 flows/s was counted inside the target",
+        "backlog left from the previous activity distorted the first step",
+        "only one scorer state was fresh at the start"
+      ]
+    },
+    {
+      "date": "2026-11-19",
+      "run": "second (corrected method)",
+      "conditions": "same 3 VMs, plus Flink reading the same topic and application logs shipped to Logstash; 3 scorers active, background producer subtracted, backlog purged before the first step",
+      "steps": [
+        {
+          "target": 300,
+          "produced_per_s": 344,
+          "consumed_per_s": 343,
+          "lag_end": 160,
+          "p95_latency_ms": 1055
+        },
+        {
+          "target": 600,
+          "produced_per_s": 555,
+          "consumed_per_s": 552,
+          "lag_end": 226,
+          "p95_latency_ms": 1026
+        },
+        {
+          "target": 1200,
+          "produced_per_s": 1144,
+          "consumed_per_s": 1127,
+          "lag_end": 842,
+          "p95_latency_ms": 1019
+        },
+        {
+          "target": 2400,
+          "produced_per_s": 2287,
+          "consumed_per_s": 2276,
+          "lag_end": 581,
+          "p95_latency_ms": 654
+        },
+        {
+          "target": 4800,
+          "produced_per_s": 4062,
+          "consumed_per_s": 4078,
+          "lag_end": 66,
+          "p95_latency_ms": 464
+        }
+      ],
+      "highest_rate_consumed_without_falling_behind": 4078,
+      "limit_seen": "producer on one VM (lower bound: the scorers kept up)",
+      "drain_seconds": 90.5,
+      "lag_after_drain": 153,
+      "duration_s": 264,
+      "reading": "The two runs differ (6,463 versus 4,078 flows/s) because the load on the three small VMs differs (Flink and log shipping were added) and because the producer, not the scorers, is the limit: treat the figures as lower bounds of this setup, not as a capacity guarantee."
+    }
+  ],
+  "flink": {
+    "measured_on": "2026-11-19",
+    "jobs": [
+      "flow-aggregates (10 s tumbling windows)",
+      "rule-alerts (bursts of >= 200 flows shorter than 1 s per port in 10 s, DNS excluded)"
+    ],
+    "observed": {
+      "windows_computed_in_about_30_minutes": 218,
+      "rule_alerts": {
+        "bruteforce_burst": 257,
+        "http_flood_burst": 253
+      },
+      "attack_share_in_alerted_windows": 0.9018
+    },
+    "caveat": "labelled replay with 62 % attacks; on real traffic these port-burst rules would produce many false positives without source addresses and history"
+  },
+  "qwen": {
+    "model": "qwen2.5:7b-instruct",
+    "vm": "e2-standard-4 (4 vCPU, 16 GB), Spot",
+    "generation_tokens_per_s": 5.53,
+    "model_load_s": 4.7,
+    "agent_answer_seconds": "32 to 78 (four test questions)",
+    "note": "rules answer shown first, model rewrite replaces it when it arrives"
+  },
+  "api": {
+    "requests_per_second_health_through_https_proxy": 39.6,
+    "saturation_connections": "8 to 16",
+    "rate_limit_per_minute_default": 120,
+    "rate_limit_per_minute_configured": 6000,
+    "vm": "e2-micro, 0.25 vCPU, 1 GB"
+  }
 }
