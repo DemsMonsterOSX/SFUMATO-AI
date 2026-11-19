@@ -236,6 +236,20 @@ def docs_answer(hits: list[dict]) -> dict:
             "sources": [f"{h['file']}#{h['section']}" for h in hits], "matched": "docs"}
 
 
+def llm_context_compact(base: dict, extra: dict | None) -> str:
+    """Short context for a small CPU model: the rules draft (which already carries the exact figures) plus at most two short excerpts.
+    A 7B model reads a few hundred tokens per ten seconds on 4 vCPUs, so the full JSON used with Gemini would make it unusable."""
+    parts = [f"Verified draft answer (figures are exact): {base['answer']}"]
+    ex = extra or {}
+    for d in (ex.get("docs") or [])[:2]:
+        parts.append(f"Documentation excerpt [{d['file']}#{d['section']}]: {' '.join(d['text'].split())[:650]}")
+    for pr in (ex.get("procedures") or [])[:1]:
+        parts.append(f"Procedure {pr['id']} {pr['title']} (draft, not validated). Triage: {'; '.join(pr['triage'][:3])}. Containment: {'; '.join(pr['contain'][:2])}.")
+    if ex.get("bucket"):
+        parts.append("Bucket datasets: " + "; ".join(f"{b['prefix']} ({b.get('files', '?')} files)" for b in ex["bucket"]))
+    return "\n".join(parts)[:3200]
+
+
 def llm_context(results: dict | None, advanced: dict | None, extra: dict | None) -> str:
     ctx: dict[str, Any] = {}
     if extra and extra.get("cve"):

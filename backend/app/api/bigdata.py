@@ -118,11 +118,16 @@ async def agent(req: AgentRequest):
     if prov["selected"] == "deterministic":
         out["note"] = f"LLM unavailable ({prov['reason']}): rules answer."
         return out
-    user = ("Question: " + question + "\n\nDraft answer computed by rules (may be incomplete): " + base["answer"]
-            + "\n\nDATA (JSON): " + davinci.llm_context(results, advanced, extra))
+    if prov["selected"] == "ollama":   # small CPU model: short context, short system prompt
+        user = "Question: " + question + "\n\n" + davinci.llm_context_compact(base, extra)
+        system = (davinci.SYSTEM + " Be brief: at most 4 sentences.")
+    else:
+        user = ("Question: " + question + "\n\nDraft answer computed by rules (may be incomplete): " + base["answer"]
+                + "\n\nDATA (JSON): " + davinci.llm_context(results, advanced, extra))
+        system = davinci.SYSTEM
     try:
         async with llm_slot():
-            data, model = await CALLERS[prov["selected"]](davinci.SYSTEM, user, davinci.SCHEMA)
+            data, model = await CALLERS[prov["selected"]](system, user, davinci.SCHEMA)
         text = str(data.get("answer", "")).strip()
         if text:
             return {**base, "answer": text, "engine": prov["selected"], "model": model, "note": None}
