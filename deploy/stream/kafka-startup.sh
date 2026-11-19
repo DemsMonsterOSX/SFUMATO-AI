@@ -116,6 +116,8 @@ if [ "$ID" = "1" ]; then
   mk network-flows-dlq 1 604800000
   mk alerts 3 86400000
   mk cve-events 3 604800000
+  mk flow-aggregates 3 86400000
+  mk rule-alerts 3 86400000
   /opt/kafka/bin/kafka-topics.sh --bootstrap-server $B --describe
   echo "TOPICS_READY brokers=$n"
 fi

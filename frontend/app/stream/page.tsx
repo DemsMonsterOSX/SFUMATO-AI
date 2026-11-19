@@ -15,7 +15,11 @@ type Scorer = { host: string; scenario: string; consumed: number; alerts: number
   latency_ms: { p50: number | null; p95: number | null }; age_s: number; active: boolean; uptime_s: number };
 type Producer = { host: string; scenario: string; target_rate: number; sent: number; errors: number; avg_rate: number; age_s: number; active: boolean };
 type Scenario = { description: string; flows_scored: number; confusion: Cm; precision: number; recall: number; rate_flows_per_s: number; per_label?: Record<string, { flows: number; flagged: number }>; offline_reference: { precision: number; recall: number } };
+type FlinkWin = { window_start: string; window_end: string; flows: number; attack_flows: number; distinct_dst_ports: number; avg_duration_us: number | null; syn_flows: number };
+type FlinkAlert = { window_start: string; dst_port: number; flows: number; attack_flows: number; avg_duration_us: number | null; rule: string };
+type Flink = { windows: FlinkWin[]; alerts: FlinkAlert[]; windows_seen: number; alerts_by_rule: Record<string, number>; alert_flows: number; alert_attack_share: number | null; age_s: number; active: boolean };
 type Overview = {
+  flink?: Flink | null;
   active: boolean; live_available: boolean; scorers: Scorer[]; producers: Producer[];
   cve_consumer: { events_consumed: number; counts: Record<string, number>; recent: { type: string; id: string; severity: string | null; kev: boolean }[] } | null;
   cve_bridge: { published: number; last_generated_at: string } | null;
@@ -112,6 +116,38 @@ function StressCard() {
   );
 }
 
+/** Flink: stateful 10-second windows and rate rules computed on the Kafka flow, next to the model-based scorers. */
+function FlinkCard({ f }: { f: Flink }) {
+  const wins = f.windows.map((w) => ({ t: w.window_end.slice(11, 19), flows: w.flows, attacks: w.attack_flows }));
+  return (
+    <Card className="mt-5">
+      <CardHeader title="Apache Flink: windows and rate rules" subtitle="Tumbling 10-second event-time windows over the same Kafka topic; the rules need no model, so they also see families the model never learned" icon={<Activity className="h-4 w-4" />}
+        right={<Badge color={f.active ? "#34d399" : "#64748b"}>{f.active ? "job producing" : `last result ${f.age_s}s ago`}</Badge>} />
+      <div className="h-[210px]">
+        <ResponsiveContainer>
+          <LineChart data={wins} margin={{ left: -5 }}>
+            <CartesianGrid stroke="rgba(148,178,255,0.06)" vertical={false} />
+            <XAxis dataKey="t" tick={{ fill: "#94a3b8", fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
+            <YAxis tick={{ fill: "#64748b", fontSize: 11 }} axisLine={false} tickLine={false} />
+            <Tooltip contentStyle={tooltipStyle} />
+            <Legend wrapperStyle={{ fontSize: 10 }} />
+            <Line type="monotone" dataKey="flows" name="flows per window" stroke="#3b82f6" dot={false} />
+            <Line type="monotone" dataKey="attacks" name="attack flows (replay labels)" stroke="#f43f5e" dot={false} />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+      <p className="mt-2 text-xs text-slate-300">{n(f.windows_seen)} windows computed. Rule alerts by rule: {Object.entries(f.alerts_by_rule).map(([k, v]) => `${k} ${n(v)}`).join(" · ") || "none yet"}.
+        {f.alert_attack_share !== null && <> Among the flows inside alerted windows, <b className="text-white">{(f.alert_attack_share * 100).toFixed(1)} %</b> are attacks according to the replay labels (the rules never read the labels).</>}</p>
+      {f.alerts.length > 0 && (
+        <div className="mt-2 max-h-48 overflow-auto">
+          <table className="w-full text-left text-xs"><thead className="text-slate-500"><tr><th className="py-1">Window end</th><th>Rule</th><th>Port</th><th>Flows</th><th>Attack flows</th><th>Mean duration (ms)</th></tr></thead>
+            <tbody>{f.alerts.slice(0, 12).map((a, i) => <tr key={i} className="border-t border-line text-slate-200"><td className="py-1 font-mono">{a.window_start.slice(11, 19)}</td><td>{a.rule}</td><td className="font-mono">{a.dst_port}</td><td className="font-mono">{n(a.flows)}</td><td className="font-mono">{n(a.attack_flows)}</td><td className="font-mono">{a.avg_duration_us !== null ? (a.avg_duration_us / 1000).toFixed(1) : "—"}</td></tr>)}</tbody></table>
+        </div>
+      )}
+    </Card>
+  );
+}
+
 export default function StreamPage() {
   const { data, error } = useApi<Overview>("stream/overview", 5000);
   const r = data?.results;
@@ -137,6 +173,8 @@ export default function StreamPage() {
           </div>
 
           <StressCard />
+
+          {data.flink && <FlinkCard f={data.flink} />}
 
           {data.live_available && data.scorers.length > 0 && (
             <Card className="mt-5">

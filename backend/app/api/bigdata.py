@@ -101,7 +101,9 @@ async def agent(req: AgentRequest):
             except Exception:  # noqa: BLE001
                 listing.append({"prefix": root["prefix"], "description": root["description"]})
         extra["bucket"] = listing
-        if base["matched"] is None or not hits:
+        if not davinci.is_procedure_question(question):
+            hits = []
+            extra.pop("procedures", None)
             base = {"answer": "Jeux de données exposés dans le bucket : " + " ; ".join(
                 f"{x['prefix']} ({x.get('files', '?')} fichiers, {x.get('subfolders', 0)} sous-dossiers, {round(x.get('bytes', 0) / 1e9, 2)} Go) : {x['description']}" for x in listing)
                 + ". Ils se parcourent dans la page API Console, onglet Datasets (CSV).", "sources": ["datasets"], "matched": "bucket"}
@@ -109,8 +111,11 @@ async def agent(req: AgentRequest):
     doc_hits = [d for d in docs_index.search(question, 3) if d["score"] >= 2.5]
     if doc_hits:
         extra["docs"] = doc_hits
-        if base["matched"] is None:
+        generic = base["matched"] in (None, "pipeline", "limits")
+        if generic and (base["matched"] is None or doc_hits[0]["score"] >= 8):
             base = davinci.docs_answer(doc_hits)
+        else:
+            base = {**base, "sources": list(dict.fromkeys(base.get("sources", []) + [f"{d['file']}#{d['section']}" for d in doc_hits[:2]]))}
     out = {**base, "engine": "rules", "model": "sfumato-davinci-rules-v1", "note": None}
     if not req.use_llm or (not results and not advanced and not hits and not extra.get("cve") and not extra.get("docs")):
         return out

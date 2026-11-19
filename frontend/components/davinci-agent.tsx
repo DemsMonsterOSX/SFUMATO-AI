@@ -26,11 +26,23 @@ export function DaVinciAgent() {
     const question = text.trim();
     if (!question || busy) return;
     setQ("");
-    setMsgs((m) => [...m, { role: "user", text: question }]);
     setBusy(true);
+    setMsgs((m) => [...m, { role: "user", text: question }]);
+    const wantLlm = useLlm && !!info?.llm_available;
+    let idx = -1;
     try {
-      const r = await api<Reply>("bigdata/agent", { method: "POST", body: JSON.stringify({ question, use_llm: useLlm }) });
-      setMsgs((m) => [...m, { role: "agent", text: r.answer, meta: r }]);
+      // 1) instant answer from the deterministic rules
+      const fast = await api<Reply>("bigdata/agent", { method: "POST", body: JSON.stringify({ question, use_llm: false }) });
+      setMsgs((m) => { idx = m.length; return [...m, { role: "agent", text: fast.answer, meta: wantLlm ? { ...fast, note: "Reformulation par le modèle en cours (30 à 90 s)…" } : fast }]; });
+      // 2) the language model rewrites it from the same data; it replaces the first answer when it arrives
+      if (wantLlm) {
+        try {
+          const slow = await api<Reply>("bigdata/agent", { method: "POST", body: JSON.stringify({ question, use_llm: true }) });
+          setMsgs((m) => m.map((x, i) => (i === idx ? { role: "agent", text: slow.answer, meta: slow } : x)));
+        } catch (e) {
+          setMsgs((m) => m.map((x, i) => (i === idx && x.meta ? { ...x, meta: { ...x.meta, note: "Le modèle n'a pas répondu : réponse à règles conservée." } } : x)));
+        }
+      }
     } catch (e) {
       setMsgs((m) => [...m, { role: "agent", text: `Erreur : ${e instanceof Error ? e.message : String(e)}` }]);
     } finally {
@@ -98,7 +110,7 @@ export function DaVinciAgent() {
                 </div>
               </div>
             ))}
-            {busy && <div className="text-xs text-slate-400">Da Vinci réfléchit…</div>}
+            {busy && <div className="text-xs text-slate-400">Da Vinci travaille…</div>}
             <div ref={end} />
           </div>
           <form onSubmit={submit} className="flex items-center gap-2 border-t border-line p-3">

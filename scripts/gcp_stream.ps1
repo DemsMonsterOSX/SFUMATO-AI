@@ -111,7 +111,7 @@ switch ($Action) {
     New-Item -ItemType Directory $stage | Out-Null
     $tgz = Join-Path $stage "app.tgz"
     $src = Join-Path $root "streaming"
-    tar -czf $tgz -C $src common.py producer.py scorer.py cve_bridge.py cve_consumer.py controller.py stress_producer.py requirements.txt
+    tar -czf $tgz -C $src common.py producer.py scorer.py cve_bridge.py cve_consumer.py controller.py stress_producer.py flink_state.py requirements.txt
     $sha = (Get-FileHash $tgz -Algorithm SHA256).Hash.ToLower()
     $req = (Get-FileHash (Join-Path $src "requirements.txt") -Algorithm SHA256).Hash.ToLower()
     $man = Join-Path $stage "manifest.json"
