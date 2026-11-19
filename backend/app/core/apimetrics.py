@@ -42,7 +42,12 @@ def snapshot(window_s: int = 60) -> dict:
         mem = {"total_mb": int(info["MemTotal"].split()[0]) // 1024, "available_mb": int(info["MemAvailable"].split()[0]) // 1024}
     except Exception:
         pass
-    return {"window_s": window_s, "requests": len(ev), "rps_window": round(len(ev) / window_s, 2), "rps_last_10s": round(len(last10) / 10, 2),
+    try:
+        from app.core.config import get_settings
+        limit = get_settings().rate_limit_per_minute
+    except Exception:
+        limit = None
+    return {"rate_limit_per_minute": limit, "window_s": window_s, "requests": len(ev), "rps_window": round(len(ev) / window_s, 2), "rps_last_10s": round(len(last10) / 10, 2),
             "p50_ms": _pct([e[3] for e in ev], 0.5), "p95_ms": _pct([e[3] for e in ev], 0.95), "p99_ms": _pct([e[3] for e in ev], 0.99),
             "errors_5xx": sum(1 for e in ev if e[2] >= 500), "routes": routes[:15], "uptime_s": round(now - _started),
             "load_average": list(os.getloadavg()) if hasattr(os, "getloadavg") else None, "memory": mem, "cpu_count": os.cpu_count()}

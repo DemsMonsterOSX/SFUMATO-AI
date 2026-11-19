@@ -175,12 +175,12 @@ function DatasetsTab() {
 }
 
 /* --------------------------------------------------------- load and distribution */
-type Metrics = { window_s: number; requests: number; rps_window: number; rps_last_10s: number; p50_ms: number | null; p95_ms: number | null; p99_ms: number | null; errors_5xx: number;
+type Metrics = { rate_limit_per_minute?: number | null; window_s: number; requests: number; rps_window: number; rps_last_10s: number; p50_ms: number | null; p95_ms: number | null; p99_ms: number | null; errors_5xx: number;
   routes: { route: string; requests: number; errors: number; client_errors: number; p50_ms: number | null; p95_ms: number | null }[];
   uptime_s: number; load_average: number[] | null; memory: { total_mb: number; available_mb: number } | null; cpu_count: number | null };
 type StreamOv = { active: boolean; scorers: { host: string; partitions: number[]; throughput_per_s: number; consumed: number; active: boolean; lag_by_partition: Record<string, number> }[]; totals: { throughput_per_s: number } };
 
-type Probe = { concurrency: number; rps: number; p50: number; p95: number; errors: number; requests: number };
+type Probe = { concurrency: number; rps: number; p50: number; p95: number; errors: number; limited: number; requests: number };
 const ENDPOINTS: Record<string, string> = { "health": "Liveness (no database, lightest)", "status": "Platform status (database + worker)", "cves/summary": "CVE summary (bucket read, cached)", "procedures?q=ransomware": "Procedure search (BM25)", "incidents?limit=5": "Incident list (database)" };
 
 function LoadTab() {
@@ -192,27 +192,28 @@ function LoadTab() {
   const [note, setNote] = useState<string | null>(null);
 
   async function run() {
-    if (!window.confirm("Run the API load test from this browser?\n\nIt sends requests with 1, 2, 4, 8, 16 then 32 parallel connections for 8 seconds each (about a minute) and stops early if more than 5 % of the requests fail. The dashboard VM is small (0.25 vCPU): other users may notice a slowdown.")) return;
+    if (!window.confirm("Run the API load test from this browser?\n\nIt sends requests with 1, 2, 4, 8, 16 then 32 parallel connections for 8 seconds each (about a minute) and stops early if more than 5 % of the requests fail or are rate-limited. The dashboard VM is small (0.25 vCPU): other users may notice a slowdown.")) return;
     setRunning(true); setProbes([]); setNote(null);
     const out: Probe[] = [];
     for (const c of [1, 2, 4, 8, 16, 32]) {
-      const lat: number[] = []; let errors = 0; const t0 = performance.now(); const end = t0 + 8000;
+      const lat: number[] = []; let errors = 0; let limited = 0; const t0 = performance.now(); const end = t0 + 8000;
       await Promise.all(Array.from({ length: c }, async () => {
         while (performance.now() < end) {
           const s = performance.now();
-          try { const r = await fetch(`/api/backend/${ep}`, { cache: "no-store" }); await r.arrayBuffer(); if (!r.ok) errors++; } catch { errors++; }
+          try { const r = await fetch(`/api/backend/${ep}`, { cache: "no-store" }); await r.arrayBuffer(); if (r.status === 429) limited++; else if (!r.ok) errors++; } catch { errors++; }
           lat.push(performance.now() - s);
         }
       }));
       const dt = (performance.now() - t0) / 1000;
       lat.sort((a, b) => a - b);
-      const p = { concurrency: c, requests: lat.length, rps: Math.round(lat.length / dt), p50: Math.round(lat[Math.floor(lat.length * 0.5)] ?? 0), p95: Math.round(lat[Math.floor(lat.length * 0.95)] ?? 0), errors };
+      const p = { concurrency: c, requests: lat.length, rps: Math.round(lat.length / dt), p50: Math.round(lat[Math.floor(lat.length * 0.5)] ?? 0), p95: Math.round(lat[Math.floor(lat.length * 0.95)] ?? 0), errors, limited };
       out.push(p); setProbes([...out]);
       if (errors / Math.max(1, lat.length) > 0.05) { setNote(`Stopped at ${c} connections: more than 5 % of the requests failed.`); break; }
+      if (limited / Math.max(1, lat.length) > 0.05) { setNote(`Stopped at ${c} connections: the API rate limiter answered 429 to more than 5 % of the requests. That is the configured policy, not a crash.`); break; }
     }
     setRunning(false);
   }
-  const best = probes.reduce((a, b) => (b.errors / Math.max(1, b.requests) <= 0.05 && b.rps > a ? b.rps : a), 0);
+  const best = probes.reduce((a, b) => (b.errors / Math.max(1, b.requests) <= 0.05 && b.limited / Math.max(1, b.requests) <= 0.05 && b.rps > a ? b.rps : a), 0);
   return (
     <div className="space-y-5">
       <div className="grid gap-5 xl:grid-cols-2">
@@ -253,12 +254,12 @@ function LoadTab() {
         {probes.length > 0 && (
           <>
             <Badge color="#34d399">best sustained: {n(best)} requests/s</Badge>
-            <table className="mt-3 w-full text-left text-xs"><thead className="text-slate-400"><tr>{["Connections", "Requests", "Req/s", "p50 ms", "p95 ms", "Errors"].map((h) => <th key={h} className="px-2 py-2 font-medium">{h}</th>)}</tr></thead>
-              <tbody>{probes.map((p) => <tr key={p.concurrency} className="border-t border-line text-slate-200"><td className="px-2 py-2 font-mono">{p.concurrency}</td><td className="px-2 py-2 font-mono">{n(p.requests)}</td><td className="px-2 py-2 font-mono">{n(p.rps)}</td><td className="px-2 py-2 font-mono">{p.p50}</td><td className="px-2 py-2 font-mono">{p.p95}</td><td className="px-2 py-2 font-mono">{p.errors}</td></tr>)}</tbody></table>
+            <table className="mt-3 w-full text-left text-xs"><thead className="text-slate-400"><tr>{["Connections", "Requests", "Req/s", "p50 ms", "p95 ms", "Errors", "Rate-limited (429)"].map((h) => <th key={h} className="px-2 py-2 font-medium">{h}</th>)}</tr></thead>
+              <tbody>{probes.map((p) => <tr key={p.concurrency} className="border-t border-line text-slate-200"><td className="px-2 py-2 font-mono">{p.concurrency}</td><td className="px-2 py-2 font-mono">{n(p.requests)}</td><td className="px-2 py-2 font-mono">{n(p.rps)}</td><td className="px-2 py-2 font-mono">{p.p50}</td><td className="px-2 py-2 font-mono">{p.p95}</td><td className="px-2 py-2 font-mono">{p.errors}</td><td className="px-2 py-2 font-mono">{p.limited}</td></tr>)}</tbody></table>
           </>
         )}
         {note && <p className="mt-2 text-xs text-amber-200">{note}</p>}
-        <p className="mt-3 text-[11px] text-slate-500">The path measured is browser, internet, HTTPS proxy, dashboard proxy, API: it is the real user path, so it includes your own connection and the browser limit on parallel requests. It tests the small dashboard VM, not the streaming cluster.</p>
+        <p className="mt-3 text-[11px] text-slate-500">The API allows {m?.rate_limit_per_minute ? n(m.rate_limit_per_minute) : "a limited number of"} requests per minute per key and the whole team shares the dashboard key; answers 429 show the limiter working. /health is never rate-limited, so it measures raw capacity. The path measured is browser, internet, HTTPS proxy, dashboard proxy, API: it is the real user path, so it includes your own connection and the browser limit on parallel requests. It tests the small dashboard VM, not the streaming cluster.</p>
       </Card>
     </div>
   );
