@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Activity, BookOpen, Brain, Bug, Database, FlaskConical, GitBranch, LayoutDashboard, Radar, Settings, ShieldHalf } from "lucide-react";
+import { Activity, BookOpen, Brain, Bug, Database, FlaskConical, GitBranch, LayoutDashboard, Radar, Radio, Settings, ShieldHalf } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
@@ -18,6 +18,7 @@ const NAV = [
   { href: "/bigdata", label: "Big Data Lab", icon: Database },
   { href: "/procedures", label: "Procedures", icon: BookOpen },
   { href: "/cves", label: "CVE Feed", icon: Bug },
+  { href: "/stream", label: "Live Stream", icon: Radio },
   { href: "/simulator", label: "Incident Simulator", icon: FlaskConical },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
