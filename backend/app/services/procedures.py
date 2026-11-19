@@ -23,7 +23,12 @@ _FR_EN = {"hameconnage": "phishing", "hameconnage": "phishing", "rancongiciel": 
           "balayage": "scan", "analyse": "scan", "latéral": "lateral", "lateral": "lateral", "exfiltration": "exfiltration", "vol": "theft", "donnees": "data",
           "vulnerabilite": "vulnerability cve", "faille": "vulnerability", "journal": "logs", "journaux": "logs", "persistance": "persistence",
           "privileges": "privilege", "elevation": "escalation", "confinement": "containment", "isoler": "isolate containment", "preuves": "evidence",
-          "faux": "false", "positif": "positive", "attaque": "attack", "inconnue": "unseen", "apprentissage": "machine learning model drift"}
+          "faux": "false", "positif": "positive", "attaque": "attack", "inconnue": "unseen", "apprentissage": "machine learning model drift",
+          "anomalies": "anomaly detector", "anomalie": "anomaly", "detecteur": "detector", "echoue": "fail failed", "echec": "failure", "tombe": "fails failure",
+          "panne": "failure fault tolerance", "debit": "rate limit throughput", "limite": "limit", "limites": "limits", "ingerees": "ingestion", "ingestion": "ingestion ingest",
+          "requetes": "requests", "requete": "request", "deploiement": "deploy deployment", "deployer": "deploy", "cout": "cost", "couts": "cost budget",
+          "flux": "flows streaming stream", "fonctionne": "works architecture", "architecture": "architecture design", "journaux": "logs", "surcharge": "overload stress",
+          "tolerance": "fault tolerance", "reseau": "network", "donnees": "data dataset", "modele": "model", "perf": "performance", "performances": "performance throughput"}
 _lock = threading.Lock()
 _cache: dict = {"mtime": None, "docs": None, "idx": None}
 

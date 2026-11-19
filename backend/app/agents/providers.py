@@ -160,3 +160,19 @@ async def resolve_provider() -> dict:
 
 def reset_status_cache() -> None:
     _status_cache.update(at=0.0, value=None)
+
+
+async def resolve_agent_provider() -> dict:
+    """Provider of the Da Vinci AI agent. DAVINCI_PROVIDER=ollama prefers the internal Qwen (Ollama on its own VM) when it answers;
+    otherwise the global choice (resolve_provider) applies. Kept apart from the SOAR investigator on purpose: the small CPU model is
+    fine for short answers about the project but too slow for the long investigation prompts."""
+    import os
+    base = await resolve_provider()
+    if os.environ.get("DAVINCI_PROVIDER", "").lower() != "ollama":
+        return base
+    s = get_settings()
+    url = get_credentials().get("ollama_url")
+    models = await ollama_models(url) if url else None
+    if models is not None and any(m == s.ollama_model or m.split(":")[0] == s.ollama_model.split(":")[0] for m in models):
+        return {**base, "selected": "ollama", "model": s.ollama_model, "reason": "DAVINCI_PROVIDER=ollama: internal Qwen reachable"}
+    return {**base, "agent_note": "internal Qwen not reachable: using the global provider or the rules"}

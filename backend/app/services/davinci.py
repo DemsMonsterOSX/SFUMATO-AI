@@ -229,6 +229,13 @@ def procedures_answer(hits: list[dict]) -> dict:
     return {"answer": text, "sources": [f"procedures/{h['id']}" for h in hits], "matched": "procedures"}
 
 
+def docs_answer(hits: list[dict]) -> dict:
+    top = hits[0]
+    snippet = " ".join(top["text"].split())[:420]
+    return {"answer": f"D'après la documentation du projet ({top['file']}, section « {top['section']} ») : {snippet}",
+            "sources": [f"{h['file']}#{h['section']}" for h in hits], "matched": "docs"}
+
+
 def llm_context(results: dict | None, advanced: dict | None, extra: dict | None) -> str:
     ctx: dict[str, Any] = {}
     if extra and extra.get("cve"):
@@ -236,6 +243,10 @@ def llm_context(results: dict | None, advanced: dict | None, extra: dict | None)
         ctx["cve_feed"] = {"window_days": c["window_days"], "kev": {k: v for k, v in c["kev"].items() if k != "recent"} | {"recent": c["kev"]["recent"][:15]},
                            "nvd": {k: v for k, v in c["nvd"].items() if k not in ("top_cvss", "per_day")}, "epss_top": c["epss"]["top"][:10],
                            "limitations": c["limitations"]}
+    if extra and extra.get("docs"):
+        ctx["project_documentation_excerpts"] = [{"source": f"{d['file']}#{d['section']}", "text": d["text"]} for d in extra["docs"]]
+    if extra and extra.get("bucket"):
+        ctx["bucket_datasets"] = extra["bucket"]
     if extra and extra.get("procedures"):
         ctx["procedures_draft_not_validated"] = extra["procedures"]
     if results:

@@ -84,6 +84,7 @@ def main() -> None:
             "examples": add_tree(tar, ROOT / "examples", "examples", secrets),
             "playbooks": add_tree(tar, ROOT / "playbooks", "playbooks", secrets),
             "config": add_tree(tar, ROOT / "config", "config", secrets),
+            "docs": add_tree(tar, ROOT / "docs", "docs", secrets),
             "ml": add_tree(tar, ROOT / "ml", "ml", secrets, keep_ml),
             "web": add_tree(tar, standalone, "web", secrets, lambda r: not PLATFORM_JUNK.search(r.as_posix())),
         }

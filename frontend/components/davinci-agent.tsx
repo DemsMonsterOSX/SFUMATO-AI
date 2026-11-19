@@ -61,14 +61,14 @@ export function DaVinciAgent() {
               <img src="/davinci/icon.webp" alt="" width={32} height={32} className="h-8 w-8 rounded-full ring-1 ring-cyan-400/40" />
               <div className="leading-tight">
                 <div className="text-sm font-semibold text-white">Da Vinci AI</div>
-                <div className="text-[10px] text-slate-400">Questions sur les résultats Big Data</div>
+                <div className="text-[10px] text-slate-400">Questions sur le projet : Big Data, CVE, procédures, flux, API</div>
               </div>
             </div>
             <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-slate-300"
               title={info ? (info.llm_available ? `${info.provider} · ${info.model}` : info.reason) : ""}>
               <input type="checkbox" checked={useLlm && !!info?.llm_available} disabled={!info?.llm_available}
                 onChange={(e) => setUseLlm(e.target.checked)} className="accent-cyan-400" />
-              {info?.llm_available ? "IA Gemini" : "Règles seules"}
+              {info?.llm_available ? `IA ${info.provider === "ollama" ? "Qwen" : info.provider}` : "Règles seules"}
             </label>
           </div>
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3 text-sm">
@@ -77,7 +77,7 @@ export function DaVinciAgent() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/davinci/logo.webp" alt="Da Vinci AI" width={120} height={120} className="mx-auto h-28 w-28 object-contain" />
                 <p className="text-xs leading-relaxed text-slate-400">
-                  Je réponds à partir des résultats publiés (Spark, BigQuery, ML avancé), jamais à partir de ma mémoire. {info && !info.llm_available && "Aucune clé IA n'est configurée : j'utilise des règles déterministes."}
+                  Je réponds à partir des résultats publiés, des procédures, du flux CVE, du bucket et de la documentation du projet, jamais à partir de ma mémoire. {info && !info.llm_available && "Aucune clé IA n'est configurée : j'utilise des règles déterministes."}
                 </p>
                 {(info?.suggestions ?? []).map((s) => (
                   <button key={s} onClick={() => void ask(s)} className="block w-full rounded-xl border border-line bg-ink-900/60 px-3 py-2 text-left text-xs text-slate-200 transition hover:border-cyan-400/40">{s}</button>

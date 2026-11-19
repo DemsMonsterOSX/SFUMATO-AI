@@ -11,9 +11,11 @@ from fastapi import APIRouter, Depends
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
-from app.agents.providers import CALLERS, LLMError, llm_slot, resolve_provider
+from app.agents.providers import CALLERS, LLMError, llm_slot, resolve_agent_provider, resolve_provider
 from app.core.security import require_api_key
 from app.services import cve as cve_lib
+from app.services import datasets as ds_lib
+from app.services import docs_index
 from app.services import davinci
 from app.services import procedures as proc_lib
 
@@ -68,9 +70,9 @@ class AgentRequest(BaseModel):
 
 @router.get("/agent/info", summary="Da Vinci AI: suggested questions and which engine would answer")
 async def agent_info():
-    prov = await resolve_provider()
+    prov = await resolve_agent_provider()
     return {"suggestions": davinci.SUGGESTIONS, "llm_available": prov["selected"] != "deterministic",
-            "provider": prov["selected"], "model": prov["model"], "reason": prov["reason"]}
+            "provider": prov["selected"], "model": prov["model"], "reason": prov.get("agent_note") or prov["reason"]}
 
 
 @router.post("/agent", summary="Ask Da Vinci AI a question about the Big Data results (rules, optionally rewritten by an LLM)")
@@ -84,13 +86,35 @@ async def agent(req: AgentRequest):
     if proc_lib.available() and (davinci.is_procedure_question(question) or base["matched"] is None):
         found = [h for h in proc_lib.search(question, 3) if h["score"] >= 3]
         hits = [x for x in (proc_lib.get(h["id"]) for h in found) if x]
-        if hits and (davinci.is_procedure_question(question) or base["matched"] is None):
+        if hits:
             base = davinci.procedures_answer(hits)
             extra["procedures"] = hits
+    # what is in the bucket (allow-listed datasets only)
+    qn = question.lower()
+    if any(w in qn for w in ("bucket", "fichier", "csv", "dataset", "jeu de donn", "stockage", "parquet", "files")):
+        listing = []
+        for root in ds_lib.roots():
+            try:
+                l = ds_lib.listing(root["prefix"])
+                listing.append({"prefix": root["prefix"], "description": root["description"], "files": len(l.get("items", [])), "subfolders": len(l.get("prefixes", [])),
+                                "bytes": sum(i["size"] for i in l.get("items", []))})
+            except Exception:  # noqa: BLE001
+                listing.append({"prefix": root["prefix"], "description": root["description"]})
+        extra["bucket"] = listing
+        if base["matched"] is None or not hits:
+            base = {"answer": "Jeux de données exposés dans le bucket : " + " ; ".join(
+                f"{x['prefix']} ({x.get('files', '?')} fichiers, {x.get('subfolders', 0)} sous-dossiers, {round(x.get('bytes', 0) / 1e9, 2)} Go) : {x['description']}" for x in listing)
+                + ". Ils se parcourent dans la page API Console, onglet Datasets (CSV).", "sources": ["datasets"], "matched": "bucket"}
+    # project documentation: fallback answer and extra context for the LLM
+    doc_hits = [d for d in docs_index.search(question, 3) if d["score"] >= 2.5]
+    if doc_hits:
+        extra["docs"] = doc_hits
+        if base["matched"] is None:
+            base = davinci.docs_answer(doc_hits)
     out = {**base, "engine": "rules", "model": "sfumato-davinci-rules-v1", "note": None}
-    if not req.use_llm or (not results and not advanced and not hits and not extra.get("cve")):
+    if not req.use_llm or (not results and not advanced and not hits and not extra.get("cve") and not extra.get("docs")):
         return out
-    prov = await resolve_provider()
+    prov = await resolve_agent_provider()
     if prov["selected"] == "deterministic":
         out["note"] = f"LLM unavailable ({prov['reason']}): rules answer."
         return out
