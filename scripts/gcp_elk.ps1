@@ -8,7 +8,7 @@
    .\scripts\gcp_elk.ps1 teardown   delete the VM and its disk (type DELETE)
 #>
 param(
-  [ValidateSet("up", "status", "start", "stop", "teardown")][string]$Action = "status",
+  [ValidateSet("up", "refresh", "status", "start", "stop", "teardown")][string]$Action = "status",
   [string]$Project = "gen-lang-client-0426716352",
   [string]$Zone = "us-central1-a",
   [string]$MachineType = "e2-standard-2",
@@ -60,6 +60,11 @@ switch ($Action) {
     }
     if (-not $ok) { Write-Host "`nNot ready after 35 minutes: .\scripts\gcp_elk.ps1 status"; exit 1 }
     Write-Host "`nInternal address: http://${vm}.${Zone}.c.${Project}.internal (Elasticsearch :9200, Logstash HTTP :8080). Passwords: secrets\elk-secrets.txt" -ForegroundColor Green
+  }
+  "refresh" {
+    Write-Host (G compute instances add-metadata $vm "--zone=$Zone" "--project=$Project" ("--metadata-from-file=startup-script=" + (Join-Path $root "deploy\elk\elk-startup.sh")))
+    $st = G compute instances describe $vm "--zone=$Zone" "--project=$Project" "--format=value(status)"
+    if ($st -eq "RUNNING") { Write-Host (G compute instances reset $vm "--zone=$Zone" "--project=$Project") } else { Write-Host "$vm is ${st}: the new script runs at the next start" }
   }
   "status" {
     Write-Host (G compute instances describe $vm "--zone=$Zone" "--project=$Project" "--format=value(status,machineType.basename(),networkInterfaces[0].networkIP)")

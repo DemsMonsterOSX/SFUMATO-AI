@@ -2,7 +2,7 @@
 
 Enabled only when LOGSTASH_URL and LOGSTASH_TOKEN are set. Events are queued in memory and sent in batches by one background thread;
 when the queue is full or Logstash is unreachable events are dropped silently: logging must never slow down or break a request.
-Event fields: service, level, message, plus free keys (route, method, status, ms, host). "ts" is the UNIX time of the event.
+Event fields: service, level, message, plus free keys (route, method, status, ms, vm). "ts" is the UNIX time of the event.
 """
 from __future__ import annotations
 
@@ -53,7 +53,7 @@ def emit(service: str, level: str, message: str, **fields) -> None:
             threading.Thread(target=_worker, name="logship", daemon=True).start()
             _started = True
     try:
-        _q.put_nowait({"ts": time.time(), "service": service, "level": level.upper(), "message": message[:2000], "host": HOST, **fields})
+        _q.put_nowait({"ts": time.time(), "service": service, "level": level.upper(), "message": message[:2000], "vm": HOST, **fields})
     except queue.Full:
         pass
 

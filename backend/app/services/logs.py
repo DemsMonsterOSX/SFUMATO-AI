@@ -78,6 +78,6 @@ def search(q: str | None, minutes: int, service: str | None, level: str | None, 
     must: list[dict] = [{"simple_query_string": {"query": q[:200], "fields": ["message", "route", "service"], "default_operator": "and"}}] if q and q.strip() else []
     body = {"size": size, "sort": [{"@timestamp": "desc"}], "track_total_hits": True,
             "query": {"bool": {"filter": _filters(minutes, service, level), "must": must}},
-            "_source": ["@timestamp", "service", "level", "message", "route", "method", "status", "ms", "host", "logger"]}
+            "_source": ["@timestamp", "service", "level", "message", "route", "method", "status", "ms", "vm", "logger"]}
     d = _post("sfumato-logs-*/_search", body)
     return {"total": d["hits"]["total"]["value"], "items": [h["_source"] for h in d["hits"]["hits"]]}

@@ -59,6 +59,11 @@ for i in $(seq 1 90); do
 done
 curl -fsS -u "elastic:$EPW" http://127.0.0.1:9200/_cluster/health >/dev/null 2>&1 || { journalctl -u elasticsearch -n 25 --no-pager; fail "elasticsearch did not start"; }
 
+# mapping version 2 (host renamed to vm): drop the indices created with the first mapping, once
+if [ ! -f /opt/.elk-mapping-v2 ]; then
+  curl -fsS -u "elastic:$EPW" -X DELETE "http://127.0.0.1:9200/sfumato-logs-*" >/dev/null 2>&1 || true
+  touch /opt/.elk-mapping-v2
+fi
 # 14-day retention and an index template for the log fields
 curl -fsS -u "elastic:$EPW" -X PUT http://127.0.0.1:9200/_ilm/policy/sfumato-logs -H 'Content-Type: application/json' \
   -d '{"policy":{"phases":{"hot":{"actions":{}},"delete":{"min_age":"14d","actions":{"delete":{}}}}}}' >/dev/null || echo "warning: ilm policy not created"
@@ -66,7 +71,7 @@ curl -fsS -u "elastic:$EPW" -X PUT http://127.0.0.1:9200/_index_template/sfumato
   "index_patterns":["sfumato-logs-*"],
   "template":{"settings":{"number_of_shards":1,"number_of_replicas":0,"index.lifecycle.name":"sfumato-logs"},
     "mappings":{"properties":{"@timestamp":{"type":"date"},"service":{"type":"keyword"},"level":{"type":"keyword"},"route":{"type":"keyword"},
-      "method":{"type":"keyword"},"status":{"type":"integer"},"ms":{"type":"float"},"host":{"type":"keyword"},"message":{"type":"text"}}}}}' >/dev/null || echo "warning: template not created"
+      "method":{"type":"keyword"},"status":{"type":"integer"},"ms":{"type":"float"},"vm":{"type":"keyword"},"message":{"type":"text"}}}}}' >/dev/null || echo "warning: template not created"
 
 # Logstash: HTTP input with basic auth -> light parsing -> Elasticsearch
 printf -- '-Xms768m\n-Xmx768m\n' > /etc/logstash/jvm.options.d/heap.options
@@ -87,7 +92,8 @@ filter {
     mutate { remove_field => ["ts"] }
   }
   if ![level] { mutate { add_field => { "level" => "INFO" } } }
-  mutate { uppercase => ["level"] remove_field => ["headers", "event", "url", "http", "user_agent"] }
+  # the HTTP input adds its own "host" object (sender address): drop it, the applications send their machine name as "vm"
+  mutate { uppercase => ["level"] remove_field => ["host", "headers", "event", "url", "http", "user_agent"] }
 }
 output {
   elasticsearch {

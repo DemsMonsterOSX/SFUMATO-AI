@@ -17,7 +17,7 @@ type Overview = {
   routes: { route: string; requests: number; avg_ms: number; p95_ms: number; errors: number }[];
   slowest: { route: string; ms: number; status: number; "@timestamp": string }[];
 };
-type Hit = { "@timestamp": string; service: string; level: string; message: string; route?: string; method?: string; status?: number; ms?: number; host?: string };
+type Hit = { "@timestamp": string; service: string; level: string; message: string; route?: string; method?: string; status?: number; ms?: number; vm?: string };
 
 export default function LogsPage() {
   const [minutes, setMinutes] = useState(60);
