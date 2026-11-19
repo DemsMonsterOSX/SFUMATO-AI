@@ -5,7 +5,7 @@ Runs on kafka-1 (role "controller"). The dashboard backend calls it over the pro
   GET  /stress   -> progress and results of the current or last test
   GET  /health
 
-The ramp: for each target rate (300, 600, 1200, 2400, 4800, 7200 flows/s, up to max_rate) one or more stress producers
+The ramp: for each target rate (300, 600, 1200, 2400, 4800, 7200 flows/s, up to max_rate, minus what the regular replay producer already sends) one or more stress producers
 (stress_producer.py) run for step_seconds while the Kafka offsets are read: produced per second (change of the end offsets),
 consumed per second (change of the committed offsets of the scorer group) and the backlog (lag). A step PASSES when the scorers
 consume at least 95 % of what was produced and the backlog at the end stays under three seconds of traffic. The ramp stops at
@@ -67,6 +67,16 @@ def active_scorers() -> int:
     return n
 
 
+def background_rate() -> float:
+    """Flows per second already sent by the regular replay producer (counted in the offsets, so it must be subtracted)."""
+    total = 0.0
+    for h in ("sfumato-kafka-1", "sfumato-kafka-2", "sfumato-kafka-3"):
+        d = c.read_json(f"stream/state/producer-{h}.json")
+        if d and time.time() - d.get("updated_at", 0) < 30:
+            total += d.get("target_rate", 0)
+    return total
+
+
 def run_ramp(max_rate: int, step_s: int) -> None:
     scenario = c.SCENARIO
     group = f"scorers-{scenario}"
@@ -74,49 +84,64 @@ def run_ramp(max_rate: int, step_s: int) -> None:
     started = time.time()
     with lock:
         state.clear()
-        state.update(status="running", started_at=started, scenario=scenario, steps=steps_out, max_sustainable=None, active_scorers=active_scorers(),
-                     note="Producers run on kafka-1; the scorers of the group share the load.")
+        state.update(status="running", started_at=started, scenario=scenario, steps=steps_out, max_sustainable=None, max_target_passed=None,
+                     active_scorers=active_scorers(), note="Producers run on kafka-1; the scorers of the group share the load.")
     try:
+        # warm-up: wait for the three scorers and for an empty backlog, so the first step is not distorted
+        t_w = time.time()
+        while time.time() - t_w < 60 and (active_scorers() < 3 or offsets(group)[2] > 500):
+            time.sleep(2)
+        bg = background_rate()
+        with lock:
+            state.update(active_scorers=active_scorers(), background_rate=bg, warmup_seconds=round(time.time() - t_w))
         if state["active_scorers"] == 0:
             raise RuntimeError("no scorer is running: start the pipeline with scripts/gcp_stream.ps1 run")
-        best = None
+        best_rate, best_target, ceiling = None, None, "maximum tested rate reached"
         for target in [s for s in STEPS if s <= max_rate]:
-            procs_n = max(1, math.ceil(target / 2500))
+            stress_rate = max(50.0, target - bg)   # the regular producer already contributes bg flows per second
+            procs_n = max(1, math.ceil(stress_rate / 2500))
             e0, k0, _ = offsets(group)
             t0 = time.time()
             with lock:
                 state["current_target"] = target
-            procs = [subprocess.Popen([sys.executable, "-u", os.path.join(os.path.dirname(__file__), "stress_producer.py"), "--rate", str(target / procs_n),
+            procs = [subprocess.Popen([sys.executable, "-u", os.path.join(os.path.dirname(__file__), "stress_producer.py"), "--rate", str(stress_rate / procs_n),
                                        "--seconds", str(step_s), "--scenario", scenario, "--tag", f"s{target}p{i}"], stdout=subprocess.PIPE, text=True,
                                       env=os.environ.copy()) for i in range(procs_n)]
             outs = [json.loads((p.communicate(timeout=step_s + 90)[0].strip().splitlines() or ["{}"])[-1] or "{}") for p in procs]
             dt = time.time() - t0
             e1, k1, lag = offsets(group)
-            sent = sum(o.get("sent", 0) for o in outs)
             errors = sum(o.get("errors", 0) for o in outs)
             produced_rate, consumed_rate = (e1 - e0) / dt, (k1 - k0) / dt
-            ok = errors == 0 and consumed_rate >= 0.95 * max(produced_rate, 1) and lag <= 3 * target and produced_rate >= 0.9 * target
-            row = {"target": target, "producers": procs_n, "produced_per_s": round(produced_rate), "consumed_per_s": round(consumed_rate), "lag_end": lag,
-                   "p95_latency_ms": scorer_p95(), "errors": errors, "passed": ok,
-                   "reason": None if ok else ("producer could not reach the target rate" if produced_rate < 0.9 * target else "consumers fell behind (backlog growing)" if errors == 0 else "delivery errors")}
+            consumers_ok = consumed_rate >= 0.95 * max(produced_rate, 1) and lag <= 3 * max(produced_rate, 1)
+            producer_limited = produced_rate < 0.9 * target
+            ok = errors == 0 and consumers_ok
+            reason = None if (ok and not producer_limited) else (
+                "producer could not reach the target rate (consumers kept up: the real limit is higher)" if ok else
+                "consumers fell behind (backlog growing)" if errors == 0 else "delivery errors")
+            row = {"target": target, "stress_producers": procs_n, "background_rate": bg, "produced_per_s": round(produced_rate), "consumed_per_s": round(consumed_rate),
+                   "lag_end": lag, "p95_latency_ms": scorer_p95(), "errors": errors, "passed": ok, "consumers_ok": consumers_ok,
+                   "producer_limited": producer_limited, "reason": reason}
             with lock:
                 steps_out.append(row)
+            if ok:
+                best_rate, best_target = round(consumed_rate), target
+                with lock:
+                    state.update(max_sustainable=best_rate, max_target_passed=best_target)
             if not ok:
+                ceiling = "consumers (the scorers fell behind)"
                 break
-            best = target
-            with lock:
-                state["max_sustainable"] = best
-        # drain: how long until the backlog is gone
+            if producer_limited:
+                ceiling = "producer on one VM (lower bound: the scorers kept up)"
+                break
         t1 = time.time()
         lag = offsets(group)[2]
         while lag > 50 and time.time() - t1 < 90:
             time.sleep(2)
             lag = offsets(group)[2]
         with lock:
-            state.update(status="done", finished_at=time.time(), drain_seconds=round(time.time() - t1, 1), lag_after_drain=lag, max_sustainable=best,
-                         duration_s=round(time.time() - started), current_target=None,
-                         verdict=("limited by the consumers" if steps_out and steps_out[-1]["passed"] is False and steps_out[-1]["produced_per_s"] >= 0.9 * steps_out[-1]["target"]
-                                  else "limited by the producer on one VM" if steps_out and not steps_out[-1]["passed"] else "reached the maximum tested rate"))
+            state.update(status="done", finished_at=time.time(), drain_seconds=round(time.time() - t1, 1), lag_after_drain=lag, duration_s=round(time.time() - started),
+                         current_target=None, ceiling=ceiling,
+                         verdict=f"highest rate consumed without falling behind: {best_rate or 0} flows/s; the limit seen is the {ceiling}")
     except Exception as e:  # noqa: BLE001
         with lock:
             state.update(status="error", error=f"{type(e).__name__}: {str(e)[:200]}", finished_at=time.time())

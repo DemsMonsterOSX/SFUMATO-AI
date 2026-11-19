@@ -13,7 +13,10 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from sqlalchemy import func, select
 
-from app.api import bigdata, cves, incidents, intel, procedures, stream, system
+import time
+
+from app.core import apimetrics
+from app.api import bigdata, cves, datasets, incidents, intel, metrics, procedures, stream, system
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.core.security import RequestGuardMiddleware
@@ -95,6 +98,18 @@ def create_app() -> FastAPI:
         return JSONResponse({"detail": "Incident validation failed" if request.url.path.endswith("/incidents")
                              else "Validation failed", "errors": errors}, status_code=422)
 
+    @app.middleware("http")
+    async def _metrics(request, call_next):
+        t0 = time.perf_counter()
+        status = 500
+        try:
+            response = await call_next(request)
+            status = response.status_code
+            return response
+        finally:
+            route = request.scope.get("route")
+            apimetrics.record(getattr(route, "path", request.url.path), status, (time.perf_counter() - t0) * 1000)
+
     @app.get("/", include_in_schema=False)
     def root():
         return {"name": settings.app_name, "docs": "/docs", "health": "/api/v1/health"}
@@ -107,6 +122,8 @@ def create_app() -> FastAPI:
     app.include_router(procedures.router)
     app.include_router(cves.router)
     app.include_router(stream.router)
+    app.include_router(datasets.router)
+    app.include_router(metrics.router)
     return app
 
 

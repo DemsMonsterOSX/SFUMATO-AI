@@ -3,7 +3,6 @@
 import { Cloud, Database, Gauge, HardDrive, Layers } from "lucide-react";
 import { Bar, BarChart, CartesianGrid, Cell, Legend, ResponsiveContainer, Tooltip, XAxis, YAxis } from "recharts";
 import { Badge, Card, CardHeader, Empty, ErrorNote, KV, PageHeader, Skeleton, Stat } from "@/components/ui";
-import { DaVinciAgent } from "@/components/davinci-agent";
 import { useApi } from "@/hooks/useApi";
 
 const tooltipStyle = { background: "#08102a", border: "1px solid rgba(148,178,255,0.15)", borderRadius: 12, fontSize: 12 };
@@ -282,7 +281,6 @@ export default function BigDataPage() {
           <KV k="Source" v={data.dataset.source} />
         </Card>
       )}
-      <DaVinciAgent />
     </div>
   );
 }

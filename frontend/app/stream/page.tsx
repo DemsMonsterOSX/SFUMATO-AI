@@ -30,10 +30,10 @@ type Overview = {
 };
 
 
-type StressStep = { target: number; producers: number; produced_per_s: number; consumed_per_s: number; lag_end: number; p95_latency_ms: number | null; errors: number; passed: boolean; reason: string | null };
+type StressStep = { target: number; stress_producers: number; producer_limited?: boolean; background_rate?: number; produced_per_s: number; consumed_per_s: number; lag_end: number; p95_latency_ms: number | null; errors: number; passed: boolean; reason: string | null };
 type Stress = {
   reachable: boolean; reason?: string; status?: string; steps?: StressStep[]; max_sustainable?: number | null; current_target?: number | null; error?: string;
-  drain_seconds?: number; lag_after_drain?: number; duration_s?: number; verdict?: string; active_scorers?: number; scenario?: string; finished_at?: number;
+  ceiling?: string; background_rate?: number; max_target_passed?: number | null; drain_seconds?: number; lag_after_drain?: number; duration_s?: number; verdict?: string; active_scorers?: number; scenario?: string; finished_at?: number;
   last?: Omit<Stress, "reachable" | "last"> | null;
 };
 
@@ -70,7 +70,8 @@ function StressCard() {
       {steps.length > 0 && (
         <>
           <div className="mt-3 flex flex-wrap items-center gap-3 text-xs text-slate-200">
-            <Badge color={view?.max_sustainable ? "#34d399" : "#f43f5e"}>max sustainable: {view?.max_sustainable ? `${n(view.max_sustainable)} flows/s` : "below the first step"}</Badge>
+            <Badge color={view?.max_sustainable ? "#34d399" : "#f43f5e"}>highest rate scored without backlog: {view?.max_sustainable ? `${n(view.max_sustainable)} flows/s` : "below the first step"}</Badge>
+            {view?.ceiling && <Badge color="#fbbf24">limit seen: {view.ceiling}</Badge>}
             {view?.verdict && <span className="text-slate-400">{view.verdict}</span>}
             {view?.drain_seconds !== undefined && <span className="text-slate-400">backlog drained in {view.drain_seconds}s</span>}
             {view?.active_scorers !== undefined && <span className="text-slate-400">{view.active_scorers} scorers active</span>}
@@ -91,20 +92,20 @@ function StressCard() {
           </div>
           <div className="mt-3 overflow-x-auto">
             <table className="w-full text-left text-xs">
-              <thead className="text-slate-400"><tr>{["Target /s", "Producers", "Produced /s", "Consumed /s", "Backlog at end", "p95 latency", "Errors", "Result"].map((h) => <th key={h} className="px-2 py-2 font-medium">{h}</th>)}</tr></thead>
+              <thead className="text-slate-400"><tr>{["Target /s", "Stress producers", "Total produced /s", "Consumed /s", "Backlog at end", "p95 latency", "Errors", "Result"].map((h) => <th key={h} className="px-2 py-2 font-medium">{h}</th>)}</tr></thead>
               <tbody>
                 {steps.map((r) => (
                   <tr key={r.target} className="border-t border-line text-slate-200">
-                    <td className="px-2 py-2 font-mono">{n(r.target)}</td><td className="px-2 py-2 font-mono">{r.producers}</td>
+                    <td className="px-2 py-2 font-mono">{n(r.target)}</td><td className="px-2 py-2 font-mono">{r.stress_producers}</td>
                     <td className="px-2 py-2 font-mono">{n(r.produced_per_s)}</td><td className="px-2 py-2 font-mono">{n(r.consumed_per_s)}</td>
                     <td className="px-2 py-2 font-mono">{n(r.lag_end)}</td><td className="px-2 py-2 font-mono">{r.p95_latency_ms ?? "—"} ms</td><td className="px-2 py-2 font-mono">{r.errors}</td>
-                    <td className="px-2 py-2">{r.passed ? <Badge color="#34d399">sustained</Badge> : <Badge color="#f43f5e" title={r.reason ?? ""}>{r.reason ?? "failed"}</Badge>}</td>
+                    <td className="px-2 py-2">{r.passed && !r.producer_limited ? <Badge color="#34d399">sustained</Badge> : r.passed ? <Badge color="#fbbf24" title={r.reason ?? ""}>producer-limited</Badge> : <Badge color="#f43f5e" title={r.reason ?? ""}>{r.reason ?? "failed"}</Badge>}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="mt-2 text-[11px] text-slate-500">A step is sustained when the scorers consume at least 95 % of what is produced and the backlog stays under three seconds of traffic. The maximum found is the limit of this setup (three e2-small VMs, Python scorers), not of Kafka itself.</p>
+          <p className="mt-2 text-[11px] text-slate-500">A step is sustained when the scorers consume at least 95 % of what is produced and the backlog stays under three seconds of traffic. When the producer is the limit, the figure is a lower bound for the scorers. The regular replay producer's own rate is subtracted from the stress producers. It measures this setup (three e2-small VMs, Python scorers), not Kafka itself.</p>
         </>
       )}
     </Card>

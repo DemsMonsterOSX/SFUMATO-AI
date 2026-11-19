@@ -1,10 +1,11 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Activity, BookOpen, Brain, Bug, Database, FlaskConical, GitBranch, LayoutDashboard, Radar, Radio, Settings, ShieldHalf } from "lucide-react";
+import { Activity, BookOpen, Brain, Bug, Database, FlaskConical, GitBranch, LayoutDashboard, Radar, Radio, Settings, TerminalSquare, ShieldHalf } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
+import { DaVinciAgent } from "@/components/davinci-agent";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
 import { Dot } from "./ui";
@@ -19,6 +20,7 @@ const NAV = [
   { href: "/procedures", label: "Procedures", icon: BookOpen },
   { href: "/cves", label: "CVE Feed", icon: Bug },
   { href: "/stream", label: "Live Stream", icon: Radio },
+  { href: "/api-console", label: "API Console", icon: TerminalSquare },
   { href: "/simulator", label: "Incident Simulator", icon: FlaskConical },
   { href: "/settings", label: "Settings", icon: Settings },
 ];
@@ -110,6 +112,7 @@ export function Shell({ children }: { children: ReactNode }) {
           ))}
         </nav>
         <main className="mx-auto w-full max-w-[1500px] flex-1 px-4 py-7 md:px-8">{children}</main>
+        <DaVinciAgent />
       </div>
     </div>
   );
