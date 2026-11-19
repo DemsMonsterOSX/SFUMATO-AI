@@ -107,7 +107,12 @@ else
   sudo -u flink env JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 /opt/flink/bin/sql-client.sh -f /opt/flink-job/job.sql > /var/log/flink-sql-submit.log 2>&1 \
     && echo "FLINK_JOB_SUBMITTED" || { tail -20 /var/log/flink-sql-submit.log; fail "SQL job submission failed"; }
 fi
-curl -fsS http://127.0.0.1:8081/jobs/overview | python3 -c 'import sys,json;[print("FLINK_JOB", j["name"], j["state"]) for j in json.load(sys.stdin)["jobs"]]'
+sleep 15
+NJOBS=$(curl -fsS http://127.0.0.1:8081/jobs/overview | python3 -c 'import sys,json;print(sum(1 for j in json.load(sys.stdin)["jobs"] if j["state"]=="RUNNING"))' 2>/dev/null || echo 0)
+echo "FLINK_RUNNING_JOBS $NJOBS"
+if [ "$NJOBS" -lt 2 ] 2>/dev/null; then
+  echo "FLINK_SQL_LOG_BEGIN"; tail -40 /var/log/flink-sql-submit.log; echo "FLINK_SQL_LOG_END"
+fi
 
 # results reader (Python): code from the bucket (the same app.tgz as the Kafka VMs), published every 8 seconds
 TOKEN=$(curl -fsS -H 'Metadata-Flavor: Google' "$MD/instance/service-accounts/default/token" | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
@@ -139,4 +144,15 @@ UNIT
 else
   echo "warning: application code not found in the bucket (run scripts/gcp_stream.ps1 deploy-app), reader not started"
 fi
+# diagnostics: records read and written by each operator of each job, 100 seconds after the submission
+sleep 100
+for j in $(curl -fsS http://127.0.0.1:8081/jobs/overview | python3 -c 'import sys,json;[print(x["jid"]) for x in json.load(sys.stdin)["jobs"]]'); do
+  curl -fsS http://127.0.0.1:8081/jobs/$j | python3 -c '
+import sys, json
+d = json.load(sys.stdin)
+print("FLINK_DIAG job", d["name"], d["state"])
+for v in d["vertices"]:
+    print("FLINK_DIAG   vertex", v["name"][:100], v["status"], "read", v["metrics"]["read-records"], "write", v["metrics"]["write-records"])
+'
+done
 echo "FLINK_ALL_DONE"

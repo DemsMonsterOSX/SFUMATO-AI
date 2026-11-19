@@ -12,6 +12,15 @@ def setup_logging(level: str = "INFO") -> None:
     handler._sfumato = True  # type: ignore[attr-defined]
     handler.setFormatter(logging.Formatter("%(asctime)s %(levelname)-7s %(name)s: %(message)s"))
     root.addHandler(handler)
+    try:
+        from app.core import logship
+        if logship.enabled():
+            ls = logship.LogstashHandler("api")
+            ls._sfumato = True  # type: ignore[attr-defined]
+            ls.setFormatter(logging.Formatter("%(name)s: %(message)s"))
+            root.addHandler(ls)
+    except Exception:
+        pass
     root.setLevel(level)
     for noisy in ("httpx", "httpcore", "alembic.runtime.migration"):
         logging.getLogger(noisy).setLevel(logging.WARNING)

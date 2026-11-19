@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import json
 import os
+import sys as _sys
 import signal
 import socket
 import sys
@@ -35,8 +36,16 @@ signal.signal(signal.SIGTERM, _sig)
 signal.signal(signal.SIGINT, _sig)
 
 
+SERVICE = Path(_sys.argv[0]).stem if _sys.argv and _sys.argv[0] else "streaming"
+
+
 def log(*a):
     print(time.strftime("%H:%M:%S"), HOST, *a, flush=True)
+    try:   # also ship to Logstash when LOGSTASH_URL / LOGSTASH_TOKEN are set (log VM running); never raises
+        import logship
+        logship.emit(SERVICE, "INFO", " ".join(str(x) for x in a))
+    except Exception:  # noqa: BLE001
+        pass
 
 
 def gcs():

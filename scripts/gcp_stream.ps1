@@ -111,7 +111,7 @@ switch ($Action) {
     New-Item -ItemType Directory $stage | Out-Null
     $tgz = Join-Path $stage "app.tgz"
     $src = Join-Path $root "streaming"
-    tar -czf $tgz -C $src common.py producer.py scorer.py cve_bridge.py cve_consumer.py controller.py stress_producer.py flink_state.py requirements.txt
+    tar -czf $tgz -C $src common.py producer.py scorer.py cve_bridge.py cve_consumer.py controller.py stress_producer.py flink_state.py logship.py requirements.txt
     $sha = (Get-FileHash $tgz -Algorithm SHA256).Hash.ToLower()
     $req = (Get-FileHash (Join-Path $src "requirements.txt") -Algorithm SHA256).Hash.ToLower()
     $man = Join-Path $stage "manifest.json"
@@ -135,7 +135,14 @@ switch ($Action) {
       Set-Content -Path $tokFile -Value (($bytes | ForEach-Object { $_.ToString("x2") }) -join "") -Encoding ASCII
     }
     $ctoken = (Get-Content $tokFile -Raw).Trim()
-    $envText = (@("SCENARIO=$Scenario", "RATE=$Rate", "THRESHOLD=0.5", "CONTROL_TOKEN=$ctoken") -join "`n")
+    $lines = @("SCENARIO=$Scenario", "RATE=$Rate", "THRESHOLD=0.5", "CONTROL_TOKEN=$ctoken")
+    $elk = Join-Path $root "secrets\elk-secrets.txt"
+    if (Test-Path $elk) {   # ship the application logs to Logstash when the log VM has been created
+      $es = @{}; Get-Content $elk | ForEach-Object { $k, $v = $_ -split "=", 2; $es[$k] = $v }
+      $lines += "LOGSTASH_URL=http://sfumato-elk.$Zone.c.$Project.internal:8080"
+      $lines += "LOGSTASH_TOKEN=$($es['logship_token'])"
+    }
+    $envText = ($lines -join "`n")
     foreach ($i in 1..3) {
       $n = "sfumato-kafka-$i"
       $mdir = Join-Path ([IO.Path]::GetTempPath()) "sfumato-kafka-meta-$i"

@@ -20,6 +20,7 @@ def main() -> None:
     by_rule: Counter = Counter()
     att_in_alert = flows_in_alert = 0
     total_windows = 0
+    topic_messages: Counter = Counter()
     last = time.time()
     c.log("flink-state started")
     while not c.stop:
@@ -28,6 +29,7 @@ def main() -> None:
             if m.error():
                 continue
             got += 1
+            topic_messages[m.topic()] += 1
             try:
                 d = json.loads(m.value())
             except Exception:  # noqa: BLE001
@@ -44,7 +46,7 @@ def main() -> None:
             cons.commit(asynchronous=False)
         if time.time() - last > 8:
             c.write_state("flink", {"host": c.HOST, "windows": list(windows), "alerts": list(alerts)[:30], "windows_seen": total_windows,
-                                    "alerts_by_rule": dict(by_rule), "alert_flows": flows_in_alert,
+                                    "alerts_by_rule": dict(by_rule), "alert_flows": flows_in_alert, "topic_messages": dict(topic_messages), "assignment": [f"{tp.topic}:{tp.partition}" for tp in cons.assignment()],
                                     "alert_attack_share": round(att_in_alert / flows_in_alert, 4) if flows_in_alert else None, "updated_at": time.time()})
             last = time.time()
     cons.close()

@@ -5,12 +5,13 @@
  ASCII only (PS 5.1).
 
    .\scripts\gcp_flink.ps1 up         create the VM, install Flink (checksums verified), submit the SQL job
+   .\scripts\gcp_flink.ps1 refresh    push the current SQL job to the VM and reboot it (the job is submitted again)
    .\scripts\gcp_flink.ps1 status     VM state, markers and the job state from the serial console
    .\scripts\gcp_flink.ps1 start|stop start or stop the VM (the job is submitted again at each start)
    .\scripts\gcp_flink.ps1 teardown   delete the VM (type DELETE)
 #>
 param(
-  [ValidateSet("up", "status", "start", "stop", "teardown")][string]$Action = "status",
+  [ValidateSet("up", "refresh", "status", "start", "stop", "teardown")][string]$Action = "status",
   [string]$Project = "gen-lang-client-0426716352",
   [string]$Zone = "us-central1-a",
   [string]$Bucket = "sfumato-soc-4ab8ab-artifacts",
@@ -64,6 +65,14 @@ switch ($Action) {
     }
     if (-not $ok) { Write-Host "`nNot ready after 30 minutes: .\scripts\gcp_flink.ps1 status"; exit 1 }
     Write-Host ("`n" + (([regex]::Matches((Serial), "(FLINK_READY[^\r\n]*|FLINK_JOB[^\r\n]*)") | Select-Object -Last 3 | ForEach-Object { $_.Value }) -join "`n")) -ForegroundColor Green
+  }
+  "refresh" {
+    $f = Join-Path ([IO.Path]::GetTempPath()) "sfumato-flink-meta\flink-sql"
+    New-Item -ItemType Directory -Force (Split-Path $f) | Out-Null
+    Copy-Item (Join-Path $root "streaming\flink\job.sql") $f -Force
+    Write-Host (G compute instances add-metadata $vm "--zone=$Zone" "--project=$Project" "--metadata-from-file=flink-sql=$f,startup-script=$(Join-Path $root 'deploy\flink\flink-startup.sh')")
+    $st = G compute instances describe $vm "--zone=$Zone" "--project=$Project" "--format=value(status)"
+    if ($st -eq "RUNNING") { Write-Host (G compute instances reset $vm "--zone=$Zone" "--project=$Project") } else { Write-Host "$vm is ${st}: the new job runs at the next start" }
   }
   "status" {
     Write-Host (G compute instances describe $vm "--zone=$Zone" "--project=$Project" "--format=value(status,machineType.basename(),networkInterfaces[0].networkIP)")

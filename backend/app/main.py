@@ -15,8 +15,8 @@ from sqlalchemy import func, select
 
 import time
 
-from app.core import apimetrics
-from app.api import bigdata, cves, datasets, incidents, intel, metrics, procedures, stream, system
+from app.core import apimetrics, logship
+from app.api import bigdata, cves, datasets, incidents, intel, logs, metrics, procedures, stream, system
 from app.core.config import get_settings
 from app.core.logging import setup_logging
 from app.core.security import RequestGuardMiddleware
@@ -108,7 +108,12 @@ def create_app() -> FastAPI:
             return response
         finally:
             route = request.scope.get("route")
-            apimetrics.record(getattr(route, "path", request.url.path), status, (time.perf_counter() - t0) * 1000)
+            ms = (time.perf_counter() - t0) * 1000
+            path = getattr(route, "path", request.url.path)
+            apimetrics.record(path, status, ms)
+            if path != "/api/v1/health":
+                logship.emit("api", "ERROR" if status >= 500 else "WARNING" if status >= 400 else "INFO", f"{request.method} {path} {status}",
+                             route=path, method=request.method, status=status, ms=round(ms, 1))
 
     @app.get("/", include_in_schema=False)
     def root():
@@ -124,6 +129,7 @@ def create_app() -> FastAPI:
     app.include_router(stream.router)
     app.include_router(datasets.router)
     app.include_router(metrics.router)
+    app.include_router(logs.router)
     return app
 
 
