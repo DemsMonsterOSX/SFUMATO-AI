@@ -31,7 +31,7 @@ function IncidentsTab() {
     setBusy(true); setErr(null); setRes(null);
     try {
       const payload = JSON.parse(body);
-      setRes(await api("incidents?resubmit=true&via=api-console", { method: "POST", body: JSON.stringify(payload) }));
+      setRes(await api("incidents?resubmit=true&via=api", { method: "POST", body: JSON.stringify(payload) }));
       reload();
     } catch (e) {
       setErr(e instanceof Error ? e.message : String(e));
