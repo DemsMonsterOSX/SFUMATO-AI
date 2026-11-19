@@ -18,3 +18,5 @@ dist/
 bigdata/_sample/
 bigdata/_out/
 bigdata/report/
+streaming/model/*.joblib
+streaming/model/*.parquet

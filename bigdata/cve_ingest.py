@@ -8,6 +8,10 @@ Sources (all free, no account needed; an NVD key is optional and only raises the
   python bigdata/cve_ingest.py --bucket sfumato-soc-4ab8ab-artifacts --days 30
   python bigdata/cve_ingest.py --dry-run --days 3          # fetch and summarise, write nothing outside --local-dir
 
+Modes: full (default, rebuilds the whole window) and --incremental (hourly job: loads cve/latest, asks the NVD only for CVEs
+modified since the previous run, merges them, refreshes EPSS once per day). In a container (Cloud Run job) uploads use the
+google-cloud-storage client with the job's service account; on a workstation they use `gcloud storage cp`.
+
 Outputs: gs://BUCKET/cve/<YYYY-MM-DD>/ and gs://BUCKET/cve/latest/ with kev.json, nvd_recent.jsonl.gz, summary.json, manifest.json;
 a copy of summary.json in ml/cve/ (shipped with the web app as a fallback). Idempotent: re-running overwrites `latest`.
 Limits: the NVD often has no CVSS score for a CVE during its first days (status "Awaiting Analysis"); EPSS is fetched only for
@@ -78,10 +82,12 @@ def compact(v: dict, kev_ids: set[str]) -> dict:
             "description": desc[:400], "cvss": best_cvss(c.get("metrics", {})), "cwe": cwes, "kev": c["id"] in kev_ids}
 
 
-def fetch_nvd(start: datetime, end: datetime, key: str | None) -> list[dict]:
+def fetch_nvd(start: datetime, end: datetime, key: str | None, kind: str = "pub") -> list[dict]:
+    """kind = "pub" (published in the window) or "mod" (last modified in the window: new and updated CVEs)."""
     out, idx, total, pause = [], 0, None, (0.8 if key else 6.5)
+    names = ("pubStartDate", "pubEndDate") if kind == "pub" else ("lastModStartDate", "lastModEndDate")
     while total is None or idx < total:
-        q = {"pubStartDate": start.strftime("%Y-%m-%dT%H:%M:%S.000"), "pubEndDate": end.strftime("%Y-%m-%dT%H:%M:%S.000"),
+        q = {names[0]: start.strftime("%Y-%m-%dT%H:%M:%S.000"), names[1]: end.strftime("%Y-%m-%dT%H:%M:%S.000"),
              "resultsPerPage": 2000, "startIndex": idx}
         data = json.loads(get(f"{NVD_URL}?{urllib.parse.urlencode(q)}", headers={"apiKey": key} if key else None))
         total = data["totalResults"]
@@ -147,56 +153,131 @@ def gcloud() -> str:
     return exe
 
 
+def _client():
+    try:
+        from google.cloud import storage  # type: ignore
+        return storage.Client()
+    except Exception:
+        return None
+
+
+def gcs_read(bucket: str, name: str) -> bytes | None:
+    c = _client()
+    if c is not None:
+        b = c.bucket(bucket).blob(name)
+        return b.download_as_bytes() if b.exists() else None
+    out = Path(tempfile.mkdtemp()) / "x"
+    r = subprocess.run([gcloud(), "storage", "cp", f"gs://{bucket}/{name}", str(out), "--quiet"], capture_output=True)
+    return out.read_bytes() if r.returncode == 0 and out.exists() else None
+
+
+def gcs_write_all(bucket: str, files: dict[str, bytes], prefixes: list[str]) -> None:
+    c = _client()
+    for pre in prefixes:
+        for name, data in files.items():
+            if c is not None:
+                c.bucket(bucket).blob(f"{pre}{name}").upload_from_string(data)
+            else:
+                tmp = Path(tempfile.mkdtemp()) / name
+                tmp.write_bytes(data)
+                subprocess.run([gcloud(), "storage", "cp", str(tmp), f"gs://{bucket}/{pre}{name}", "--quiet"], check=True)
+        print("uploaded to", f"gs://{bucket}/{pre}")
+
+
+def load_previous(bucket: str) -> tuple[list[dict], dict | None]:
+    raw = gcs_read(bucket, "cve/latest/nvd_recent.jsonl.gz")
+    man = gcs_read(bucket, "cve/latest/summary.json")
+    if not raw or not man:
+        return [], None
+    recs = [json.loads(line) for line in gzip.decompress(raw).decode("utf-8").splitlines() if line.strip()]
+    return recs, json.loads(man)
+
+
 def main() -> None:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--bucket")
+    ap.add_argument("--bucket", default=os.environ.get("BUCKET"))
     ap.add_argument("--days", type=int, default=30)
+    ap.add_argument("--incremental", action="store_true", help="merge the CVEs modified since the previous run into cve/latest")
     ap.add_argument("--local-dir", default=str(ROOT / "ml" / "cve"))
     ap.add_argument("--dry-run", action="store_true", help="do not upload to the bucket")
     a = ap.parse_args()
-    if not a.dry_run and not a.bucket:
-        sys.exit("--bucket is required unless --dry-run")
+    if (not a.dry_run or a.incremental) and not a.bucket:
+        sys.exit("--bucket (or the BUCKET variable) is required unless --dry-run without --incremental")
     key = os.environ.get("NVD_API_KEY") or None
     end = datetime.now(timezone.utc)
-    print(f"KEV ...", flush=True)
+    today = end.strftime("%Y-%m-%d")
+    print("KEV ...", flush=True)
     kev_raw = get(KEV_URL)
     kev = json.loads(kev_raw)
     kev_ids = {v["cveID"] for v in kev["vulnerabilities"]}
-    print(f"  {len(kev_ids)} entries; NVD window {a.days} days ({'with' if key else 'without'} API key)", flush=True)
-    raw: list[dict] = []
-    step = timedelta(days=100)   # the NVD accepts windows up to 120 days
-    s = end - timedelta(days=a.days)
-    while s < end:
-        e = min(s + step, end)
-        raw += fetch_nvd(s, e, key)
-        s = e
-    cves = [compact(v, kev_ids) for v in raw]
-    want = sorted({c["id"] for c in cves if (c["cvss"] or {}).get("score", 0) >= 7.0} | {v["cveID"] for v in kev["vulnerabilities"] if v["dateAdded"] >= (end - timedelta(days=a.days)).strftime("%Y-%m-%d")})
-    print(f"EPSS for {len(want)} CVEs ...", flush=True)
-    epss = fetch_epss(want)
-    summary = summarise(kev, cves, epss, a.days)
+    window_start = end - timedelta(days=a.days)
+    events: list[dict] = []
 
-    out = Path(tempfile.mkdtemp(prefix="sfumato-cve-"))
-    (out / "kev.json").write_bytes(kev_raw)
-    with gzip.open(out / "nvd_recent.jsonl.gz", "wt", encoding="utf-8") as fh:
+    prev, prev_summary = (load_previous(a.bucket) if a.incremental else ([], None))
+    since = None
+    if prev_summary:
+        since = datetime.fromisoformat(prev_summary["generated_at"]) - timedelta(minutes=15)
+        if end - since > timedelta(days=100):
+            since = None
+    if a.incremental and since:
+        print(f"incremental: {len(prev)} CVEs held, NVD modified since {since:%Y-%m-%d %H:%M}Z", flush=True)
+        changed = [compact(v, kev_ids) for v in fetch_nvd(since, end, key, "mod")]
+        merged = {c["id"]: c for c in prev}
+        for c in changed:
+            old = merged.get(c["id"])
+            if old and old.get("epss"):
+                c["epss"], c["epss_at"] = old["epss"], old.get("epss_at")
+            events.append({"type": "updated" if old else "new", "id": c["id"], "severity": (c["cvss"] or {}).get("severity"), "kev": c["kev"],
+                           "published": c["published"], "at": end.isoformat()})
+            merged[c["id"]] = c
+        for c in merged.values():   # the KEV flag can change without any NVD change
+            if c["id"] in kev_ids and not c["kev"]:
+                c["kev"] = True
+                events.append({"type": "kev_added", "id": c["id"], "at": end.isoformat()})
+        cves = [c for c in merged.values() if (c["published"] or "")[:10] >= window_start.strftime("%Y-%m-%d")]
+    else:
+        print(f"full window {a.days} days ({'with' if key else 'without'} API key)", flush=True)
+        raw: list[dict] = []
+        s = window_start
+        while s < end:
+            e = min(s + timedelta(days=100), end)   # the NVD accepts windows up to 120 days
+            raw += fetch_nvd(s, e, key)
+            s = e
+        cves = [compact(v, kev_ids) for v in raw]
+        old_epss = {c["id"]: c for c in prev if c.get("epss")}
         for c in cves:
-            fh.write(json.dumps(c, ensure_ascii=False) + "\n")
-    (out / "summary.json").write_text(json.dumps(summary, ensure_ascii=False, indent=1), encoding="utf-8")
-    manifest = {"generated_at": summary["generated_at"], "files": {f.name: hashlib.sha256(f.read_bytes()).hexdigest() for f in sorted(out.iterdir())},
-                "counts": {"kev": len(kev_ids), "nvd_window": len(cves), "epss": len(epss)}}
-    (out / "manifest.json").write_text(json.dumps(manifest, indent=1), encoding="utf-8")
-    Path(a.local_dir).mkdir(parents=True, exist_ok=True)
-    shutil.copy(out / "summary.json", Path(a.local_dir) / "summary.json")
-    print(f"summary: KEV {summary['kev']['total']} (+{summary['kev']['added_in_window']} in {a.days} d), NVD {len(cves)}, "
-          f"severity {summary['nvd']['by_severity']}, EPSS {len(epss)}")
+            if c["id"] in old_epss:
+                c["epss"], c["epss_at"] = old_epss[c["id"]]["epss"], old_epss[c["id"]].get("epss_at")
+
+    recent_kev = {v["cveID"] for v in kev["vulnerabilities"] if v["dateAdded"] >= window_start.strftime("%Y-%m-%d")}
+    want = sorted(c["id"] for c in cves if ((c["cvss"] or {}).get("score", 0) >= 7.0 or c["id"] in recent_kev) and c.get("epss_at") != today)
+    extra_kev = sorted(recent_kev - {c["id"] for c in cves})   # recent KEV entries published before the window
+    print(f"EPSS for {len(want) + len(extra_kev)} CVEs (refreshed once per day) ...", flush=True)
+    got = fetch_epss(want + extra_kev)
+    for c in cves:
+        if c["id"] in got:
+            c["epss"], c["epss_at"] = got[c["id"]], today
+    epss = {c["id"]: c["epss"] for c in cves if c.get("epss")} | {k: v for k, v in got.items() if k in extra_kev}
+    summary = summarise(kev, cves, epss, a.days)
+    summary["mode"] = "incremental" if (a.incremental and since) else "full"
+    summary["last_run_changes"] = len(events)
+
+    files: dict[str, bytes] = {"kev.json": kev_raw}
+    files["nvd_recent.jsonl.gz"] = gzip.compress("".join(json.dumps(c, ensure_ascii=False) + "\n" for c in cves).encode("utf-8"))
+    files["summary.json"] = json.dumps(summary, ensure_ascii=False, indent=1).encode("utf-8")
+    files["events.jsonl"] = "".join(json.dumps(e) + "\n" for e in events).encode("utf-8")
+    files["manifest.json"] = json.dumps({"generated_at": summary["generated_at"], "mode": summary["mode"],
+                                         "files": {n: hashlib.sha256(d).hexdigest() for n, d in sorted(files.items())},
+                                         "counts": {"kev": len(kev_ids), "nvd_window": len(cves), "epss": len(epss), "events": len(events)}}, indent=1).encode("utf-8")
+    if not os.environ.get("CLOUD_RUN_JOB") and a.local_dir:
+        Path(a.local_dir).mkdir(parents=True, exist_ok=True)
+        (Path(a.local_dir) / "summary.json").write_bytes(files["summary.json"])
+    print(f"[{summary['mode']}] KEV {summary['kev']['total']} (+{summary['kev']['added_in_window']} in {a.days} d), NVD {len(cves)}, "
+          f"changes this run {len(events)}, severity {summary['nvd']['by_severity']}, EPSS {len(epss)}")
     if a.dry_run:
-        print("dry run: nothing uploaded; files in", out)
+        print("dry run: nothing uploaded")
         return
-    g = gcloud()
-    day = end.strftime("%Y-%m-%d")
-    for dest in (f"gs://{a.bucket}/cve/{day}/", f"gs://{a.bucket}/cve/latest/"):
-        subprocess.run([g, "storage", "cp", *map(str, sorted(out.iterdir())), dest, "--quiet"], check=True)
-        print("uploaded to", dest)
+    gcs_write_all(a.bucket, files, [f"cve/{today}/", "cve/latest/"])
 
 
 if __name__ == "__main__":

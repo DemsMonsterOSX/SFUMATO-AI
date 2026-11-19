@@ -1,5 +1,5 @@
 {
- "generated_at": "2026-11-18T21:25:53.294836+00:00",
+ "generated_at": "2026-11-19T09:45:17.841573+00:00",
  "window_days": 30,
  "kev": {
   "catalog_version": "2026.11.18",
@@ -543,26 +543,18 @@
   ]
  },
  "nvd": {
-  "published_in_window": 17899,
+  "published_in_window": 17891,
   "by_severity": {
-   "UNSCORED": 1038,
-   "MEDIUM": 6936,
-   "HIGH": 7231,
-   "LOW": 1123,
-   "CRITICAL": 1566,
+   "HIGH": 7250,
+   "MEDIUM": 6996,
+   "CRITICAL": 1580,
+   "LOW": 1131,
+   "UNSCORED": 929,
    "NONE": 5
   },
-  "scored_share": 0.942,
+  "scored_share": 0.948,
   "in_kev": 20,
   "per_day": [
-   {
-    "day": "2026-10-19",
-    "UNSCORED": 95,
-    "MEDIUM": 14,
-    "HIGH": 22,
-    "LOW": 2,
-    "CRITICAL": 3
-   },
    {
     "day": "2026-10-20",
     "HIGH": 815,
@@ -787,18 +779,26 @@
    {
     "day": "2026-11-17",
     "LOW": 111,
-    "HIGH": 459,
-    "MEDIUM": 521,
+    "HIGH": 460,
+    "MEDIUM": 538,
     "CRITICAL": 110,
-    "UNSCORED": 29
+    "UNSCORED": 11
    },
    {
     "day": "2026-11-18",
-    "HIGH": 274,
-    "MEDIUM": 240,
-    "LOW": 31,
-    "CRITICAL": 97,
+    "HIGH": 292,
+    "MEDIUM": 251,
+    "LOW": 34,
+    "CRITICAL": 105,
     "UNSCORED": 40
+   },
+   {
+    "day": "2026-11-19",
+    "MEDIUM": 46,
+    "LOW": 7,
+    "HIGH": 22,
+    "CRITICAL": 9,
+    "UNSCORED": 4
    }
   ],
   "top_cvss": [
@@ -821,7 +821,8 @@
     "epss": {
      "epss": 0.01143,
      "percentile": 0.67336
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-101809",
@@ -842,7 +843,8 @@
     "epss": {
      "epss": 0.00565,
      "percentile": 0.47669
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-102785",
@@ -863,7 +865,8 @@
     "epss": {
      "epss": 0.00772,
      "percentile": 0.56418
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-105781",
@@ -884,7 +887,8 @@
     "epss": {
      "epss": 0.00518,
      "percentile": 0.44727
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-105944",
@@ -905,7 +909,8 @@
     "epss": {
      "epss": 0.00703,
      "percentile": 0.53993
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-109469",
@@ -926,7 +931,8 @@
     "epss": {
      "epss": 0.00668,
      "percentile": 0.52652
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-110063",
@@ -947,7 +953,8 @@
     "epss": {
      "epss": 0.00888,
      "percentile": 0.60006
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-110264",
@@ -968,7 +975,8 @@
     "epss": {
      "epss": 0.01349,
      "percentile": 0.72052
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-110468",
@@ -989,7 +997,8 @@
     "epss": {
      "epss": 0.00639,
      "percentile": 0.51358
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-110469",
@@ -1010,7 +1019,8 @@
     "epss": {
      "epss": 0.00698,
      "percentile": 0.53814
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-111813",
@@ -1031,7 +1041,8 @@
     "epss": {
      "epss": 0.00489,
      "percentile": 0.42772
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-111832",
@@ -1052,7 +1063,8 @@
     "epss": {
      "epss": 0.00405,
      "percentile": 0.35419
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-112690",
@@ -1073,7 +1085,8 @@
     "epss": {
      "epss": 0.00991,
      "percentile": 0.63206
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-112816",
@@ -1094,7 +1107,8 @@
     "epss": {
      "epss": 0.00303,
      "percentile": 0.23476
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-113897",
@@ -1115,7 +1129,8 @@
     "epss": {
      "epss": 0.00778,
      "percentile": 0.5659
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-114202",
@@ -1136,12 +1151,13 @@
     "epss": {
      "epss": 0.00662,
      "percentile": 0.52376
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-114784",
     "published": "2026-11-17T22:18:05.783",
-    "modified": "2026-11-18T15:17:32.320",
+    "modified": "2026-11-19T05:18:25.660",
     "status": "Received",
     "description": "Vulnerability in the Oracle Business Intelligence Enterprise Edition product of Oracle Analytics (component: Platform Security).  Supported versions that are affected are 8.2.0.0.0 and  26.01.0.0.0. Easily exploitable vulnerability allows unauthenticated attacker with network access via HTTP to compromise Oracle Business Intelligence Enterprise Edition.  While the vulnerability is in Oracle Busine",
     "cvss": {
@@ -1157,12 +1173,13 @@
     "epss": {
      "epss": 0.00522,
      "percentile": 0.45001
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-114824",
     "published": "2026-11-17T22:18:10.373",
-    "modified": "2026-11-18T15:17:32.443",
+    "modified": "2026-11-19T05:18:25.817",
     "status": "Received",
     "description": "Vulnerability in the Oracle Platform Security for Java product of Oracle Fusion Middleware (component: Centralized Thirdparty Jars).  Supported versions that are affected are 12.2.1.4.0 and  14.1.2.0.0. Easily exploitable vulnerability allows unauthenticated attacker with network access via HTTP to compromise Oracle Platform Security for Java.  While the vulnerability is in Oracle Platform Securit",
     "cvss": {
@@ -1178,12 +1195,13 @@
     "epss": {
      "epss": 0.00522,
      "percentile": 0.45
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-114835",
     "published": "2026-11-17T22:18:11.710",
-    "modified": "2026-11-18T18:18:13.350",
+    "modified": "2026-11-19T05:18:26.133",
     "status": "Received",
     "description": "Vulnerability in the Oracle Access Manager product of Oracle Fusion Middleware (component: Admin Console).  Supported versions that are affected are 12.2.1.4.0 and  14.1.2.1.0. Easily exploitable vulnerability allows unauthenticated attacker with network access via HTTP to compromise Oracle Access Manager.  While the vulnerability is in Oracle Access Manager, attacks may significantly impact addit",
     "cvss": {
@@ -1199,7 +1217,8 @@
     "epss": {
      "epss": 0.00522,
      "percentile": 0.44999
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-115252",
@@ -1220,7 +1239,8 @@
     "epss": {
      "epss": 0.00418,
      "percentile": 0.36788
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-115905",
@@ -1242,7 +1262,8 @@
     "epss": {
      "epss": 0.0032,
      "percentile": 0.25423
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-117551",
@@ -1263,7 +1284,8 @@
     "epss": {
      "epss": 0.00442,
      "percentile": 0.39055
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-118423",
@@ -1284,7 +1306,8 @@
     "epss": {
      "epss": 0.00569,
      "percentile": 0.47858
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-120017",
@@ -1305,7 +1328,8 @@
     "epss": {
      "epss": 0.00259,
      "percentile": 0.17735
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-120338",
@@ -1328,7 +1352,8 @@
     "epss": {
      "epss": 0.00771,
      "percentile": 0.56382
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-120387",
@@ -1349,7 +1374,8 @@
     "epss": {
      "epss": 0.0035,
      "percentile": 0.2914
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-121351",
@@ -1370,7 +1396,8 @@
     "epss": {
      "epss": 0.01166,
      "percentile": 0.67956
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-121352",
@@ -1391,7 +1418,8 @@
     "epss": {
      "epss": 0.00892,
      "percentile": 0.60126
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-121353",
@@ -1412,7 +1440,8 @@
     "epss": {
      "epss": 0.01088,
      "percentile": 0.66031
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-121356",
@@ -1433,7 +1462,8 @@
     "epss": {
      "epss": 0.00892,
      "percentile": 0.60126
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-121489",
@@ -1454,7 +1484,8 @@
     "epss": {
      "epss": 0.00496,
      "percentile": 0.43254
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-121889",
@@ -1475,7 +1506,8 @@
     "epss": {
      "epss": 0.00892,
      "percentile": 0.60126
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-123551",
@@ -1496,7 +1528,8 @@
     "epss": {
      "epss": 0.00406,
      "percentile": 0.35547
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-124600",
@@ -1517,7 +1550,8 @@
     "epss": {
      "epss": 0.00197,
      "percentile": 0.09447
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-124815",
@@ -1538,7 +1572,8 @@
     "epss": {
      "epss": 0.00283,
      "percentile": 0.21153
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-124822",
@@ -1559,7 +1594,8 @@
     "epss": {
      "epss": 0.00274,
      "percentile": 0.20105
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-130778",
@@ -1598,7 +1634,8 @@
     "epss": {
      "epss": 0.00356,
      "percentile": 0.29915
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-61564",
@@ -1619,7 +1656,8 @@
     "epss": {
      "epss": 0.00539,
      "percentile": 0.4607
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-61567",
@@ -1640,7 +1678,8 @@
     "epss": {
      "epss": 0.00525,
      "percentile": 0.45216
-    }
+    },
+    "epss_at": "2026-11-19"
    }
   ]
  },
@@ -1668,7 +1707,8 @@
     "epss": {
      "epss": 0.99999,
      "percentile": 0.99999
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-109619",
@@ -1692,7 +1732,8 @@
     "epss": {
      "epss": 0.99999,
      "percentile": 0.99999
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-111497",
@@ -1714,7 +1755,8 @@
     "epss": {
      "epss": 0.82641,
      "percentile": 0.99674
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-116779",
@@ -1737,7 +1779,8 @@
     "epss": {
      "epss": 0.22081,
      "percentile": 0.97713
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-75869",
@@ -1758,7 +1801,8 @@
     "epss": {
      "epss": 0.20352,
      "percentile": 0.97534
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-123158",
@@ -1779,7 +1823,8 @@
     "epss": {
      "epss": 0.189,
      "percentile": 0.97351
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-77690",
@@ -1800,7 +1845,8 @@
     "epss": {
      "epss": 0.15584,
      "percentile": 0.969
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-116606",
@@ -1821,7 +1867,8 @@
     "epss": {
      "epss": 0.10947,
      "percentile": 0.95972
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-12507",
@@ -1842,7 +1889,8 @@
     "epss": {
      "epss": 0.0944,
      "percentile": 0.95519
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-111560",
@@ -1863,7 +1911,8 @@
     "epss": {
      "epss": 0.09082,
      "percentile": 0.95394
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-102895",
@@ -1886,7 +1935,8 @@
     "epss": {
      "epss": 0.0573,
      "percentile": 0.93197
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-119742",
@@ -1907,7 +1957,8 @@
     "epss": {
      "epss": 0.04088,
      "percentile": 0.90925
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-95646",
@@ -1928,7 +1979,8 @@
     "epss": {
      "epss": 0.0388,
      "percentile": 0.90429
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-69137",
@@ -1949,7 +2001,8 @@
     "epss": {
      "epss": 0.03759,
      "percentile": 0.90116
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-113802",
@@ -1970,7 +2023,8 @@
     "epss": {
      "epss": 0.03472,
      "percentile": 0.89319
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-126723",
@@ -1992,7 +2046,8 @@
     "epss": {
      "epss": 0.03421,
      "percentile": 0.89152
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-12572",
@@ -2013,7 +2068,8 @@
     "epss": {
      "epss": 0.0337,
      "percentile": 0.88995
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-92182",
@@ -2034,7 +2090,8 @@
     "epss": {
      "epss": 0.03272,
      "percentile": 0.88663
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-124002",
@@ -2056,7 +2113,8 @@
     "epss": {
      "epss": 0.03224,
      "percentile": 0.8849
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-120276",
@@ -2078,7 +2136,8 @@
     "epss": {
      "epss": 0.03211,
      "percentile": 0.8843
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-12573",
@@ -2099,7 +2158,8 @@
     "epss": {
      "epss": 0.03153,
      "percentile": 0.88209
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-124010",
@@ -2121,7 +2181,8 @@
     "epss": {
      "epss": 0.03128,
      "percentile": 0.88118
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-12062",
@@ -2142,7 +2203,8 @@
     "epss": {
      "epss": 0.02879,
      "percentile": 0.87114
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-76981",
@@ -2163,7 +2225,8 @@
     "epss": {
      "epss": 0.02879,
      "percentile": 0.87114
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-124013",
@@ -2184,7 +2247,8 @@
     "epss": {
      "epss": 0.02878,
      "percentile": 0.87111
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-86379",
@@ -2205,7 +2269,8 @@
     "epss": {
      "epss": 0.02835,
      "percentile": 0.86916
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-101210",
@@ -2226,7 +2291,8 @@
     "epss": {
      "epss": 0.02835,
      "percentile": 0.86916
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-101214",
@@ -2247,7 +2313,8 @@
     "epss": {
      "epss": 0.02835,
      "percentile": 0.86916
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-120229",
@@ -2269,7 +2336,8 @@
     "epss": {
      "epss": 0.02823,
      "percentile": 0.86857
-    }
+    },
+    "epss_at": "2026-11-19"
    },
    {
     "id": "CVE-2026-92198",
@@ -2290,10 +2358,11 @@
     "epss": {
      "epss": 0.02798,
      "percentile": 0.86729
-    }
+    },
+    "epss_at": "2026-11-19"
    }
   ],
-  "fetched_for": 8513
+  "fetched_for": 8489
  },
  "sources": [
   "CISA KEV",
@@ -2304,5 +2373,7 @@
   "Many recent CVEs have no CVSS score yet (awaiting analysis): severity counts are incomplete.",
   "EPSS was fetched only for KEV entries and CVEs scored 7.0 or higher.",
   "Only CVEs published in the window are listed; older CVEs are not in nvd_recent."
- ]
+ ],
+ "mode": "incremental",
+ "last_run_changes": 636
 }
