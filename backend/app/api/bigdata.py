@@ -12,6 +12,7 @@ from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.agents.providers import CALLERS, LLMError, llm_slot, resolve_agent_provider, resolve_provider
+from app.core.ttlcache import ttl_cache
 from app.core.security import require_api_key
 from app.services import cve as cve_lib
 from app.services import datasets as ds_lib
@@ -50,6 +51,7 @@ def _load(name: str):
 
 
 @router.get("/overview", summary="Pipeline stages, dataset facts and the Spark results when they have been published")
+@ttl_cache(30)
 def overview():
     results = _load("results.json")
     return {
@@ -61,6 +63,27 @@ def overview():
         "attacks_by_day": _load("attacks_by_day.json"),
         "results_published": results is not None,
     }
+
+
+@router.get("/scalability", summary="Measured scalability: Spark executors, Kafka scorers, API concurrency (ml/scale/*.json)")
+@ttl_cache(30)
+def scalability():
+    d = Path(get_settings().repo_dir) / "ml" / "scale"
+
+    def read(name: str):
+        try:
+            return json.loads((d / name).read_text(encoding="utf-8-sig"))
+        except (OSError, ValueError):
+            return None
+
+    api = {}
+    for kind in ("before", "after", "medium"):
+        for f in sorted(d.glob(f"{kind}_*.json")) if d.exists() else []:
+            doc = read(f.name)
+            if doc:
+                api.setdefault(doc.get("endpoint", f.stem), {})[kind] = doc
+    kafka = [x for x in (read(f"kafka_scorers{k}.json") for k in (1, 2, 3)) if x]
+    return {"spark": read("spark_scale.json"), "kafka": kafka, "api": api, "published": bool(kafka or api or read("spark_scale.json"))}
 
 
 class AgentRequest(BaseModel):

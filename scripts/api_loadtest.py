@@ -60,7 +60,7 @@ def main() -> None:
     u = urllib.parse.urlparse(a.url)
     path = f"/api/backend/{a.endpoint}"
     print(f"{u.netloc}{path}  ({a.seconds:.0f} s per level)")
-    print(f"{'conns':>6} {'requests':>9} {'req/s':>8} {'p50 ms':>8} {'p95 ms':>8} {'errors':>7} {'429':>6}")
+    print(f"{'conns':>6} {'requests':>9} {'req/s':>8} {'p50 ms':>8} {'p95 ms':>8} {'p99 ms':>8} {'errors':>7} {'429':>6}")
     rows, best = [], 0
     for c in [int(x) for x in a.levels.split(",")]:
         out: list = []
@@ -75,9 +75,9 @@ def main() -> None:
         err, lim = sum(o[1] for o in out), sum(o[2] for o in out)
         n = max(1, len(lat))
         row = {"connections": c, "requests": len(lat), "rps": round(len(lat) / dt, 1), "p50_ms": round(lat[n // 2], 1) if lat else None,
-               "p95_ms": round(lat[int(n * 0.95)], 1) if lat else None, "errors": err, "rate_limited": lim}
+               "p95_ms": round(lat[int(n * 0.95)], 1) if lat else None, "p99_ms": round(lat[min(n - 1, int(n * 0.99))], 1) if lat else None, "errors": err, "rate_limited": lim}
         rows.append(row)
-        print(f"{c:>6} {row['requests']:>9} {row['rps']:>8} {row['p50_ms']:>8} {row['p95_ms']:>8} {err:>7} {lim:>6}", flush=True)
+        print(f"{c:>6} {row['requests']:>9} {row['rps']:>8} {row['p50_ms']:>8} {row['p95_ms']:>8} {row['p99_ms']:>8} {err:>7} {lim:>6}", flush=True)
         if err / n > 0.05 or lim / n > 0.05:
             print("stopped: more than 5 % of the requests failed or were rate-limited")
             break

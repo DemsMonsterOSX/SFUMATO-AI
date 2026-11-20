@@ -7,6 +7,7 @@ from pathlib import Path
 from fastapi import APIRouter, Depends, HTTPException, Query
 
 from app.core.config import get_settings
+from app.core.ttlcache import ttl_cache
 from app.core.security import require_api_key
 from app.services import procedures as lib
 
@@ -22,6 +23,7 @@ def _manifest() -> dict | None:
 
 
 @router.get("", summary="List or search procedures (q = free text, filters by tactic and severity)")
+@ttl_cache(60)
 def list_procedures(q: str | None = Query(None, max_length=200), tactic: str | None = None, severity: str | None = None,
                     limit: int = Query(200, ge=1, le=200)):
     if not lib.available():

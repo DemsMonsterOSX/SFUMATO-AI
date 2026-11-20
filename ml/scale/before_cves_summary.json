@@ -1,0 +1,57 @@
+{
+ "endpoint": "cves/summary",
+ "levels": [
+  {
+   "connections": 1,
+   "requests": 42,
+   "rps": 5.2,
+   "p50_ms": 164.7,
+   "p95_ms": 194.3,
+   "p99_ms": 1111.8,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 4,
+   "requests": 163,
+   "rps": 20.0,
+   "p50_ms": 172.4,
+   "p95_ms": 294.1,
+   "p99_ms": 777.7,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 8,
+   "requests": 315,
+   "rps": 38.3,
+   "p50_ms": 177.4,
+   "p95_ms": 314.9,
+   "p99_ms": 727.8,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 16,
+   "requests": 194,
+   "rps": 21.8,
+   "p50_ms": 322.5,
+   "p95_ms": 2263.8,
+   "p99_ms": 2516.3,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 32,
+   "requests": 119,
+   "rps": 11.1,
+   "p50_ms": 2891.4,
+   "p95_ms": 5440.2,
+   "p99_ms": 5949.9,
+   "errors": 0,
+   "rate_limited": 0
+  }
+ ],
+ "best_clean_rps": 38.3,
+ "measured_at": "2026-11-20T18:52:30"
+}

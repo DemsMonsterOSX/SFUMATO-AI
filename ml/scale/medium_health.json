@@ -1,0 +1,67 @@
+{
+ "endpoint": "health",
+ "levels": [
+  {
+   "connections": 1,
+   "requests": 56,
+   "rps": 6.9,
+   "p50_ms": 138.7,
+   "p95_ms": 149.2,
+   "p99_ms": 428.0,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 4,
+   "requests": 224,
+   "rps": 27.5,
+   "p50_ms": 136.7,
+   "p95_ms": 150.5,
+   "p99_ms": 432.0,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 8,
+   "requests": 432,
+   "rps": 53.2,
+   "p50_ms": 141.3,
+   "p95_ms": 156.5,
+   "p99_ms": 425.0,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 16,
+   "requests": 817,
+   "rps": 100.4,
+   "p50_ms": 143.6,
+   "p95_ms": 177.5,
+   "p99_ms": 551.9,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 32,
+   "requests": 1319,
+   "rps": 160.3,
+   "p50_ms": 173.9,
+   "p95_ms": 270.2,
+   "p99_ms": 490.7,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 64,
+   "requests": 1508,
+   "rps": 181.6,
+   "p50_ms": 302.7,
+   "p95_ms": 531.9,
+   "p99_ms": 907.1,
+   "errors": 0,
+   "rate_limited": 0
+  }
+ ],
+ "best_clean_rps": 181.6,
+ "measured_at": "2026-11-20T19:39:12"
+}

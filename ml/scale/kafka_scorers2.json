@@ -1,0 +1,119 @@
+{
+ "label": "scorers=2",
+ "steps": [
+  {
+   "label": "scorers=2",
+   "target": 600,
+   "producers": 1,
+   "produced_per_s": 597,
+   "consumed_per_s": 589,
+   "lag_end": 247,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 1200,
+   "producers": 1,
+   "produced_per_s": 1194,
+   "consumed_per_s": 1175,
+   "lag_end": 570,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 2400,
+   "producers": 1,
+   "produced_per_s": 2389,
+   "consumed_per_s": 2364,
+   "lag_end": 760,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 4800,
+   "producers": 2,
+   "produced_per_s": 4777,
+   "consumed_per_s": 4756,
+   "lag_end": 640,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 7200,
+   "producers": 3,
+   "produced_per_s": 7160,
+   "consumed_per_s": 7151,
+   "lag_end": 280,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 9600,
+   "producers": 3,
+   "produced_per_s": 9557,
+   "consumed_per_s": 9539,
+   "lag_end": 540,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 12000,
+   "producers": 5,
+   "produced_per_s": 11930,
+   "consumed_per_s": 11916,
+   "lag_end": 420,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 15000,
+   "producers": 6,
+   "produced_per_s": 14919,
+   "consumed_per_s": 14906,
+   "lag_end": 375,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 18000,
+   "producers": 6,
+   "produced_per_s": 17883,
+   "consumed_per_s": 17865,
+   "lag_end": 550,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 21000,
+   "producers": 6,
+   "produced_per_s": 20766,
+   "consumed_per_s": 19695,
+   "lag_end": 32400,
+   "errors": 0,
+   "kept_up": false,
+   "producer_limited": false
+  }
+ ],
+ "max_kept_up_per_s": 17865,
+ "ceiling": "scorers fell behind",
+ "step_seconds": 30,
+ "measured_at": "2026-11-20T18:19:19"
+}

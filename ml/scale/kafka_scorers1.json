@@ -1,0 +1,86 @@
+{
+ "label": "scorers=1",
+ "steps": [
+  {
+   "label": "scorers=1",
+   "target": 600,
+   "producers": 1,
+   "produced_per_s": 597,
+   "consumed_per_s": 583,
+   "lag_end": 440,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=1",
+   "target": 1200,
+   "producers": 1,
+   "produced_per_s": 1195,
+   "consumed_per_s": 1182,
+   "lag_end": 380,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=1",
+   "target": 2400,
+   "producers": 1,
+   "produced_per_s": 2390,
+   "consumed_per_s": 2381,
+   "lag_end": 260,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=1",
+   "target": 4800,
+   "producers": 2,
+   "produced_per_s": 4779,
+   "consumed_per_s": 4779,
+   "lag_end": 20,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=1",
+   "target": 7200,
+   "producers": 3,
+   "produced_per_s": 7162,
+   "consumed_per_s": 7149,
+   "lag_end": 420,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=1",
+   "target": 9600,
+   "producers": 3,
+   "produced_per_s": 9547,
+   "consumed_per_s": 9546,
+   "lag_end": 40,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=1",
+   "target": 12000,
+   "producers": 3,
+   "produced_per_s": 11938,
+   "consumed_per_s": 11047,
+   "lag_end": 26840,
+   "errors": 0,
+   "kept_up": false,
+   "producer_limited": false
+  }
+ ],
+ "max_kept_up_per_s": 9546,
+ "ceiling": "scorers fell behind",
+ "step_seconds": 30,
+ "measured_at": "2026-11-20T18:13:21"
+}

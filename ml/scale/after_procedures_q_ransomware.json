@@ -1,0 +1,77 @@
+{
+ "endpoint": "procedures?q=ransomware",
+ "levels": [
+  {
+   "connections": 1,
+   "requests": 53,
+   "rps": 6.6,
+   "p50_ms": 141.5,
+   "p95_ms": 162.5,
+   "p99_ms": 601.3,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 2,
+   "requests": 111,
+   "rps": 13.7,
+   "p50_ms": 139.8,
+   "p95_ms": 147.6,
+   "p99_ms": 420.8,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 4,
+   "requests": 216,
+   "rps": 26.6,
+   "p50_ms": 138.3,
+   "p95_ms": 155.9,
+   "p99_ms": 492.1,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 8,
+   "requests": 312,
+   "rps": 37.0,
+   "p50_ms": 142.2,
+   "p95_ms": 512.2,
+   "p99_ms": 736.1,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 16,
+   "requests": 99,
+   "rps": 10.8,
+   "p50_ms": 1243.2,
+   "p95_ms": 3037.3,
+   "p99_ms": 4380.0,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 32,
+   "requests": 179,
+   "rps": 19.7,
+   "p50_ms": 1240.1,
+   "p95_ms": 5212.5,
+   "p99_ms": 7998.3,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 64,
+   "requests": 169,
+   "rps": 14.6,
+   "p50_ms": 2574.3,
+   "p95_ms": 9496.0,
+   "p99_ms": 9753.7,
+   "errors": 0,
+   "rate_limited": 0
+  }
+ ],
+ "best_clean_rps": 37.0,
+ "measured_at": "2026-11-20T19:32:13"
+}

@@ -1,0 +1,35 @@
+{
+ "measured_at": "2026-11-20T18:57:33.0930896Z",
+ "runs": [
+  {
+   "executors": 2,
+   "vcpu": 8,
+   "state": "SUCCEEDED",
+   "prep_seconds": 738,
+   "total_seconds": 757,
+   "batch_wall_seconds": 863,
+   "batch": "sfumato-scale-e2-11201909"
+  },
+  {
+   "executors": 3,
+   "vcpu": 12,
+   "state": "SUCCEEDED",
+   "prep_seconds": 536,
+   "total_seconds": 548,
+   "batch_wall_seconds": 658,
+   "batch": "sfumato-scale-e3-11201946"
+  },
+  {
+   "executors": 4,
+   "vcpu": 16,
+   "state": "SUCCEEDED",
+   "prep_seconds": 416,
+   "total_seconds": 427,
+   "batch_wall_seconds": 537,
+   "batch": "sfumato-scale-e4-11202000"
+  }
+ ],
+ "input_gb": 6.89,
+ "skip_ml": true,
+ "note": "1 executor is refused by Dataproc Serverless (minimum 2). Runs refused for vCPU quota are not listed."
+}

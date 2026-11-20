@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from fastapi import APIRouter, Depends, HTTPException, Query
 
+from app.core.ttlcache import ttl_cache
 from app.core.security import require_api_key
 from app.services import cve as cve_lib
 
@@ -10,6 +11,7 @@ router = APIRouter(prefix="/api/v1/cves", tags=["cves"], dependencies=[Depends(r
 
 
 @router.get("/summary", summary="KEV, NVD and EPSS summary for the last ingestion window")
+@ttl_cache(60)
 def summary():
     data, source = cve_lib.summary()
     return {"available": data is not None, "source": source, "summary": data}

@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Activity, BookOpen, Brain, Bug, Database, FlaskConical, GitBranch, LayoutDashboard, Radar, Radio, Settings, TerminalSquare, ScrollText, ShieldHalf } from "lucide-react";
+import { Activity, BookOpen, Gauge, Brain, Bug, Database, FlaskConical, GitBranch, LayoutDashboard, Radar, Radio, Settings, TerminalSquare, ScrollText, ShieldHalf } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
@@ -20,6 +20,7 @@ const NAV = [
   { href: "/procedures", label: "Procedures", icon: BookOpen },
   { href: "/cves", label: "CVE Feed", icon: Bug },
   { href: "/stream", label: "Live Stream", icon: Radio },
+  { href: "/scalability", label: "Scalability", icon: Gauge },
   { href: "/api-console", label: "API Console", icon: TerminalSquare },
   { href: "/logs", label: "Logs", icon: ScrollText },
   { href: "/simulator", label: "Incident Simulator", icon: FlaskConical },
