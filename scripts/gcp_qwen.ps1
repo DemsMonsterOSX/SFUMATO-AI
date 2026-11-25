@@ -7,6 +7,8 @@
    .\scripts\gcp_qwen.ps1 start|stop  start or stop the VM (the disk and the model are kept)
    .\scripts\gcp_qwen.ps1 teardown    delete the VM and its disk (type DELETE)
  Options: -MachineType e2-standard-4 (4 vCPU, 16 GB) | e2-standard-8 (8 vCPU, 32 GB), -Model qwen2.5:7b-instruct
+          -Gpu  one NVIDIA T4 on an n1-standard-4 (standard, not Spot, so a demo is not preempted), Deep Learning VM image with the driver
+                preinstalled, 100 GB balanced disk. Needs the GPUS_ALL_REGIONS and NVIDIA_T4_GPUS quotas. Same VM name, so nothing else changes.
 #>
 param(
   [ValidateSet("up", "status", "start", "stop", "teardown")][string]$Action = "status",
@@ -14,9 +16,11 @@ param(
   [string]$Zone = "us-central1-a",
   [string]$MachineType = "e2-standard-4",
   [string]$Model = "qwen2.5:7b-instruct",
+  [switch]$Gpu,
   [switch]$Yes
 )
 $ErrorActionPreference = "Continue"
+if ($Gpu -and -not $PSBoundParameters.ContainsKey("Model")) { $Model = "qwen2.5:14b-instruct" }   # fits the 16 GB T4 entirely (9 GB), 17 tokens/s measured
 $root = Split-Path -Parent $PSScriptRoot
 if (-not (Get-Command gcloud.cmd -ErrorAction SilentlyContinue)) {
   $p = Join-Path $env:LOCALAPPDATA "Google\Cloud SDK\google-cloud-sdk\bin"; if (Test-Path $p) { $env:Path += ";$p" } else { Write-Host "gcloud not found" -ForegroundColor Red; exit 1 }
@@ -31,7 +35,7 @@ function Serial { return (G compute instances get-serial-port-output $vm "--zone
 
 switch ($Action) {
   "up" {
-    Write-Host "Creates one Spot $MachineType VM with a 40 GB standard disk and no service account. Roughly 0.04-0.06 USD per hour while running (estimate, verify in the pricing calculator). Stop it when you are done." -ForegroundColor Yellow
+    if ($Gpu) { Write-Host "Creates one n1-standard-4 VM with an NVIDIA T4 (standard provisioning). Cost not measured: read Billing." -ForegroundColor Yellow } else { Write-Host "Creates one Spot $MachineType VM with a 40 GB standard disk and no service account. Roughly 0.04-0.06 USD per hour while running (estimate, verify in the pricing calculator). Stop it when you are done." -ForegroundColor Yellow }
     if (-not $Yes) { $a = Read-Host "Proceed? (y/N)"; if ($a -notmatch '^[yY]') { Write-Host "Cancelled."; exit 1 } }
     $null = G compute instances describe $vm "--zone=$Zone" "--project=$Project"
     if ($rc -eq 0) { Write-Host "$vm exists: use start / status" } else {
@@ -41,9 +45,16 @@ switch ($Action) {
       $files = @()
       foreach ($k in $pairs.Keys) { $f = Join-Path $mdir $k; [IO.File]::WriteAllText($f, [string]$pairs[$k]); $files += "$k=$f" }
       $files += "startup-script=" + (Join-Path $root "deploy\qwen\qwen-startup.sh")
-      $o = G compute instances create $vm "--project=$Project" "--zone=$Zone" "--machine-type=$MachineType" --provisioning-model=SPOT --instance-termination-action=STOP `
-        --image-family=debian-12 --image-project=debian-cloud --boot-disk-size=40GB --boot-disk-type=pd-standard --no-service-account --no-scopes `
-        --tags=sfumato-qwen --shielded-secure-boot ("--metadata-from-file=" + ($files -join ","))
+      $meta = "--metadata-from-file=" + ($files -join ",")
+      if ($Gpu) {
+        $o = G compute instances create $vm "--project=$Project" "--zone=$Zone" "--machine-type=n1-standard-4" "--accelerator=type=nvidia-tesla-t4,count=1" --maintenance-policy=TERMINATE `
+          --image-family=common-cu129-ubuntu-2204-nvidia-580 --image-project=deeplearning-platform-release --boot-disk-size=100GB --boot-disk-type=pd-balanced `
+          --no-service-account --no-scopes --tags=sfumato-qwen $meta
+      } else {
+        $o = G compute instances create $vm "--project=$Project" "--zone=$Zone" "--machine-type=$MachineType" --provisioning-model=SPOT --instance-termination-action=STOP `
+          --image-family=debian-12 --image-project=debian-cloud --boot-disk-size=40GB --boot-disk-type=pd-standard --no-service-account --no-scopes `
+          --tags=sfumato-qwen --shielded-secure-boot $meta
+      }
       if ($rc -ne 0) { Write-Host "creation failed: $o" -ForegroundColor Red; exit 1 } else { Write-Host "$vm created" }
     }
     Write-Host "Waiting for Ollama and the model (first boot downloads about 1.5 GB of Ollama and 4.7 GB of model: 8 to 20 minutes)" -ForegroundColor Cyan

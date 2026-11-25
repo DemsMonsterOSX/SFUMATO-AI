@@ -18,6 +18,7 @@ param(
   [string]$MachineType = "e2-medium",
   [string]$VmName = "sfumato-flink",
   [string]$SqlFile = "streaming\flink\job.sql",
+  [string]$SqlFile2 = "",   # optional second job on the same cluster, e.g. streaming\flink\job_sources.sql
   [string]$JobName = "sfumato-flow-analytics",
   [int]$Slots = 2,
   [string]$TmMem = "1700m",
@@ -55,6 +56,7 @@ switch ($Action) {
       $files = @()
       foreach ($k in $pairs.Keys) { $f = Join-Path $mdir $k; [IO.File]::WriteAllText($f, [string]$pairs[$k]); $files += "$k=$f" }
       $files += "flink-sql=" + (Join-Path $root $SqlFile)
+      if ($SqlFile2) { $files += "flink-sql-2=" + (Join-Path $root $SqlFile2) }
       $files += "startup-script=" + (Join-Path $root "deploy\flink\flink-startup.sh")
       $o = G compute instances create $vm "--project=$Project" "--zone=$Zone" "--machine-type=$MachineType" --provisioning-model=SPOT --instance-termination-action=STOP `
         --image-family=debian-12 --image-project=debian-cloud --boot-disk-size=20GB --boot-disk-type=pd-standard "--service-account=$sa" --scopes=cloud-platform `

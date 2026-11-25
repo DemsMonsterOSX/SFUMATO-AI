@@ -15,7 +15,7 @@ param(
   [ValidateSet("up", "update", "status", "url", "logs", "team-add", "team-remove", "teardown")][string]$Action = "status",
   [string]$Project = "",
   [string]$Zone = "us-central1-a",
-  [string]$MachineType = "e2-micro",
+  [string]$MachineType = "e2-standard-4",
   [string]$User = "",
   [switch]$Yes
 )
@@ -23,7 +23,7 @@ $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot
 $py = Join-Path $root ".venv\Scripts\python.exe"
 if (-not (Test-Path $py)) { $py = "python" }
-$vm = "sfumato"; $ipName = "sfumato-ip"; $fw = "sfumato-web"
+$vm = "sfumato"; $ipName = "sfumato-dashboard-ip"; $fw = "sfumato-web"
 $region = $Zone.Substring(0, $Zone.LastIndexOf("-"))
 $secretsDir = Join-Path $root "secrets"; New-Item -ItemType Directory -Force $secretsDir | Out-Null
 $vmEnv = Join-Path $secretsDir "gcp-vm.env"
@@ -48,7 +48,11 @@ if ($uri -notmatch '^gs://([^/]+)') { Fail "ML_ARTIFACT_URI missing in .env: run
 $bucket = $Matches[1]
 $reader = "sfumato-reader@$Project.iam.gserviceaccount.com"
 
-function Get-Ip { return (GCmd compute addresses describe $ipName "--region=$region" "--project=$Project" "--format=value(address)") }
+function Get-Ip {
+  $ip = GCmd compute addresses describe $ipName "--region=$region" "--project=$Project" "--format=value(address)"
+  if ($ip -match '^\d+\.\d+\.\d+\.\d+$') { return $ip }
+  return (GCmd compute instances describe $vm "--zone=$Zone" "--project=$Project" "--format=value(networkInterfaces[0].accessConfigs[0].natIP)")   # no reserved address: the VM's own
+}
 function Get-Url { $ip = Get-Ip; if ($ip -match '^\d+\.\d+\.\d+\.\d+$') { return "https://" + ($ip -replace '\.', '-') + ".sslip.io" } else { return "(no IP yet)" } }
 function Serial { return (GCmd compute instances get-serial-port-output $vm "--zone=$Zone" "--project=$Project") }
 function TeamPy { & $py (Join-Path $root "deploy\gcp\team.py") @args }
@@ -123,14 +127,22 @@ switch ($Action) {
       Step "Create the VM"
       $o = GCmd compute instances create $vm "--project=$Project" "--zone=$Zone" "--machine-type=$MachineType" `
         --image-family=debian-13 --image-project=debian-cloud --boot-disk-size=30GB --boot-disk-type=pd-standard `
-        "--service-account=$reader" --scopes=storage-ro "--tags=$fw" "--address=$ipName" --shielded-secure-boot `
+        "--service-account=$reader" "--scopes=storage-ro,compute-ro" "--tags=$fw" "--address=$ipName" --shielded-secure-boot `
         (MetaPlain) (MetaFiles)
       if ($rc -ne 0) { Fail "VM creation failed: $o" } else { Write-Host $o }
     } else {
-      Step "Update the VM metadata and restart it (disk and data are kept)"
+      Step "Update the VM: machine type $MachineType, read-only Compute scope, metadata, restart (disk and data are kept)"
+      $null = GCmd compute instances stop $vm "--zone=$Zone" "--project=$Project"
+      $o = GCmd compute instances set-machine-type $vm "--zone=$Zone" "--project=$Project" "--machine-type=$MachineType"
+      if ($rc -ne 0) { Write-Host "machine type unchanged: $o" -ForegroundColor Yellow }
+      $o = GCmd compute instances set-service-account $vm "--zone=$Zone" "--project=$Project" "--service-account=$reader" "--scopes=storage-ro,compute-ro"
+      if ($rc -ne 0) { Write-Host "scopes unchanged: $o" -ForegroundColor Yellow }
+      # read-only view of the machines for the Architecture page (idempotent)
+      $o = GCmd projects add-iam-policy-binding $Project "--member=serviceAccount:$reader" --role=roles/compute.viewer --condition=None
+      if ($rc -ne 0) { Write-Host "compute.viewer not granted (the Architecture page will show the static layout): $o" -ForegroundColor Yellow }
       $o = GCmd compute instances add-metadata $vm "--zone=$Zone" "--project=$Project" (MetaPlain) (MetaFiles)
       if ($rc -ne 0) { Fail $o }
-      $null = GCmd compute instances reset $vm "--zone=$Zone" "--project=$Project"
+      $null = GCmd compute instances start $vm "--zone=$Zone" "--project=$Project"
     }
     Step "Waiting for the first boot (packages and Python dependencies: 5 to 15 minutes on an e2-micro)"
     $deadline = (Get-Date).AddMinutes(30); $ok = $false

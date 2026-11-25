@@ -3,7 +3,7 @@ from __future__ import annotations
 
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, field_validator
 
 VerdictName = Literal["TRUE_POSITIVE", "FALSE_POSITIVE", "LEGITIMATE_ACTIVITY", "INCONCLUSIVE"]
 
@@ -39,6 +39,20 @@ class AgentOutput(BaseModel):
     recommended_verdict: VerdictName
     recommended_actions: list[ActionClaim] = Field(default_factory=list)
     knowledge_guidance: list[Claim] = Field(default_factory=list)  # may only cite knowledge-base passages
+
+    @field_validator("confidence_limitations", mode="before")
+    @classmethod
+    def _limitations_as_text(cls, v):
+        """Some models answer with the same {"statement": ...} objects they use for claims; keep their text instead of rejecting the whole report."""
+        if not isinstance(v, list):
+            return v
+        out = []
+        for x in v:
+            if isinstance(x, dict):
+                text = next((str(x[k]) for k in ("statement", "text", "limitation", "description") if x.get(k)), None)
+                x = text if text is not None else "; ".join(f"{k}: {val}" for k, val in x.items())
+            out.append(x if isinstance(x, str) else str(x))
+        return out
 
 
 class AgentReport(AgentOutput):

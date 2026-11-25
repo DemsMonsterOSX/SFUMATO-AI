@@ -1,0 +1,77 @@
+{
+ "endpoint": "bigdata/overview",
+ "levels": [
+  {
+   "connections": 1,
+   "requests": 61,
+   "rps": 7.5,
+   "p50_ms": 124.4,
+   "p95_ms": 128.5,
+   "p99_ms": 566.8,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 2,
+   "requests": 125,
+   "rps": 15.4,
+   "p50_ms": 123.6,
+   "p95_ms": 129.8,
+   "p99_ms": 373.1,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 4,
+   "requests": 245,
+   "rps": 30.2,
+   "p50_ms": 124.2,
+   "p95_ms": 134.3,
+   "p99_ms": 381.2,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 8,
+   "requests": 481,
+   "rps": 59.4,
+   "p50_ms": 124.0,
+   "p95_ms": 131.8,
+   "p99_ms": 426.1,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 16,
+   "requests": 933,
+   "rps": 114.7,
+   "p50_ms": 126.0,
+   "p95_ms": 142.6,
+   "p99_ms": 436.2,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 32,
+   "requests": 1538,
+   "rps": 189.1,
+   "p50_ms": 144.7,
+   "p95_ms": 189.7,
+   "p99_ms": 488.0,
+   "errors": 0,
+   "rate_limited": 0
+  },
+  {
+   "connections": 64,
+   "requests": 1684,
+   "rps": 206.2,
+   "p50_ms": 251.0,
+   "p95_ms": 418.5,
+   "p99_ms": 650.5,
+   "errors": 0,
+   "rate_limited": 0
+  }
+ ],
+ "best_clean_rps": 206.2,
+ "measured_at": "2026-11-25T23:05:21"
+}

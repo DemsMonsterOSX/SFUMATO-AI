@@ -6,7 +6,9 @@ import { Badge } from "@/components/ui";
 import { useApi } from "@/hooks/useApi";
 import { api } from "@/lib/api";
 
-type Info = { suggestions: string[]; llm_available: boolean; provider: string; model: string; reason: string };
+type Opt = { available: boolean; model: string; provider?: string | null };
+type Info = { suggestions: string[]; llm_available: boolean; provider: string; model: string; reason: string; options?: { qwen: Opt; api: Opt } };
+type Engine = "auto" | "rules" | "qwen" | "api";
 type Reply = { answer: string; sources: string[]; engine: string; model: string; note: string | null };
 type Msg = { role: "user" | "agent"; text: string; meta?: Reply };
 
@@ -15,7 +17,7 @@ export function DaVinciAgent() {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState("");
   const [busy, setBusy] = useState(false);
-  const [useLlm, setUseLlm] = useState(true);
+  const [engine, setEngine] = useState<Engine>("auto");
   const [msgs, setMsgs] = useState<Msg[]>([]);
   const { data: info } = useApi<Info>(open ? "bigdata/agent/info" : null);
   const end = useRef<HTMLDivElement>(null);
@@ -28,16 +30,16 @@ export function DaVinciAgent() {
     setQ("");
     setBusy(true);
     setMsgs((m) => [...m, { role: "user", text: question }]);
-    const wantLlm = useLlm && !!info?.llm_available;
+    const wantLlm = engine === "rules" ? false : engine === "auto" ? !!info?.llm_available : !!info?.options?.[engine]?.available;
     let idx = -1;
     try {
       // 1) instant answer from the deterministic rules
       const fast = await api<Reply>("bigdata/agent", { method: "POST", body: JSON.stringify({ question, use_llm: false }) });
-      setMsgs((m) => { idx = m.length; return [...m, { role: "agent", text: fast.answer, meta: wantLlm ? { ...fast, note: "Reformulation par le modèle en cours (30 à 90 s)…" } : fast }]; });
+      setMsgs((m) => { idx = m.length; return [...m, { role: "agent", text: fast.answer, meta: wantLlm ? { ...fast, note: "Reformulation par le modèle en cours…" } : fast }]; });
       // 2) the language model rewrites it from the same data; it replaces the first answer when it arrives
       if (wantLlm) {
         try {
-          const slow = await api<Reply>("bigdata/agent", { method: "POST", body: JSON.stringify({ question, use_llm: true }) });
+          const slow = await api<Reply>("bigdata/agent", { method: "POST", body: JSON.stringify({ question, use_llm: true, provider: engine === "rules" ? "auto" : engine }) });
           setMsgs((m) => m.map((x, i) => (i === idx ? { role: "agent", text: slow.answer, meta: slow } : x)));
         } catch (e) {
           setMsgs((m) => m.map((x, i) => (i === idx && x.meta ? { ...x, meta: { ...x.meta, note: "Le modèle n'a pas répondu : réponse à règles conservée." } } : x)));
@@ -73,15 +75,17 @@ export function DaVinciAgent() {
               <img src="/davinci/icon.webp" alt="" width={32} height={32} className="h-8 w-8 rounded-full ring-1 ring-cyan-400/40" />
               <div className="leading-tight">
                 <div className="text-sm font-semibold text-white">Da Vinci AI</div>
-                <div className="text-[10px] text-slate-400">Questions sur le projet : Big Data, CVE, procédures, flux, API</div>
+                <div className="text-[10px] text-slate-400">Big Data, CVE, procédures, flux, scalabilité, VM, incidents</div>
               </div>
             </div>
-            <label className="flex cursor-pointer items-center gap-1.5 text-[10px] text-slate-300"
-              title={info ? (info.llm_available ? `${info.provider} · ${info.model}` : info.reason) : ""}>
-              <input type="checkbox" checked={useLlm && !!info?.llm_available} disabled={!info?.llm_available}
-                onChange={(e) => setUseLlm(e.target.checked)} className="accent-cyan-400" />
-              {info?.llm_available ? `IA ${info.provider === "ollama" ? "Qwen" : info.provider}` : "Règles seules"}
-            </label>
+            <select value={engine} onChange={(e) => setEngine(e.target.value as Engine)} aria-label="Moteur de réponse"
+              title={info ? `Par défaut : ${info.llm_available ? `${info.provider} · ${info.model}` : info.reason}` : ""}
+              className="rounded-lg border border-line bg-ink-900/80 px-2 py-1 text-[11px] text-slate-200 outline-none focus:border-cyan-400/50">
+              <option value="auto">{info?.llm_available ? `Auto (${info.provider === "ollama" ? "Qwen" : info.provider})` : "Auto (règles)"}</option>
+              <option value="qwen" disabled={!info?.options?.qwen.available}>{`Qwen interne${info?.options && !info.options.qwen.available ? " (éteint)" : ""}`}</option>
+              <option value="api" disabled={!info?.options?.api.available}>{`API${info?.options?.api.provider ? ` ${info.options.api.provider}` : ""}${info?.options && !info.options.api.available ? " (pas de clé)" : ""}`}</option>
+              <option value="rules">Règles seules</option>
+            </select>
           </div>
           <div className="flex-1 space-y-3 overflow-y-auto px-4 py-3 text-sm">
             {msgs.length === 0 && (
@@ -89,7 +93,7 @@ export function DaVinciAgent() {
                 {/* eslint-disable-next-line @next/next/no-img-element */}
                 <img src="/davinci/logo.webp" alt="Da Vinci AI" width={120} height={120} className="mx-auto h-28 w-28 object-contain" />
                 <p className="text-xs leading-relaxed text-slate-400">
-                  Je réponds à partir des résultats publiés, des procédures, du flux CVE, du bucket et de la documentation du projet, jamais à partir de ma mémoire. {info && !info.llm_available && "Aucune clé IA n'est configurée : j'utilise des règles déterministes."}
+                  Je réponds à partir des résultats publiés, des mesures de scalabilité, des expériences PCAP et open-set, des machines, des incidents, des procédures, du flux CVE, du bucket et de la documentation, jamais à partir de ma mémoire. Choisis le moteur en haut : Qwen interne ou API. {info && !info.llm_available && "Aucune clé IA n'est configurée : j'utilise des règles déterministes."}
                 </p>
                 {(info?.suggestions ?? []).map((s) => (
                   <button key={s} onClick={() => void ask(s)} className="block w-full rounded-xl border border-line bg-ink-900/60 px-3 py-2 text-left text-xs text-slate-200 transition hover:border-cyan-400/40">{s}</button>

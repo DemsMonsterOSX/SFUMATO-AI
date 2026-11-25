@@ -19,6 +19,9 @@ SUGGESTIONS = [
     "Pourquoi le test chronologique est-il si mauvais ?",
     "Le détecteur d'anomalies fonctionne-t-il ?",
     "Quelles sont les limites de l'étude ?",
+    "Quelle VM fait quoi dans l'architecture ?",
+    "Quel est le débit mesuré de Kafka et de Flink ?",
+    "Combien d'incidents sont ouverts et lesquels sont critiques ?",
 ]
 
 
@@ -245,6 +248,8 @@ def llm_context_compact(base: dict, extra: dict | None) -> str:
         parts.append(f"Documentation excerpt [{d['file']}#{d['section']}]: {' '.join(d['text'].split())[:650]}")
     for pr in (ex.get("procedures") or [])[:1]:
         parts.append(f"Procedure {pr['id']} {pr['title']} (draft, not validated). Triage: {'; '.join(pr['triage'][:3])}. Containment: {'; '.join(pr['contain'][:2])}.")
+    if ex.get("platform"):
+        parts.append("Platform data (JSON, exact): " + json.dumps({k: v for k, v in ex["platform"].items() if k not in ("architecture",)}, ensure_ascii=False, default=str)[:1800])
     if ex.get("bucket"):
         parts.append("Bucket datasets: " + "; ".join(f"{b['prefix']} ({b.get('files', '?')} files)" for b in ex["bucket"]))
     return "\n".join(parts)[:3200]
@@ -261,6 +266,8 @@ def llm_context(results: dict | None, advanced: dict | None, extra: dict | None)
         ctx["project_documentation_excerpts"] = [{"source": f"{d['file']}#{d['section']}", "text": d["text"]} for d in extra["docs"]]
     if extra and extra.get("bucket"):
         ctx["bucket_datasets"] = extra["bucket"]
+    if extra and extra.get("platform"):
+        ctx["platform"] = extra["platform"]
     if extra and extra.get("procedures"):
         ctx["procedures_draft_not_validated"] = extra["procedures"]
     if results:

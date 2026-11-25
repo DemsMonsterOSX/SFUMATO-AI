@@ -1,0 +1,185 @@
+[
+ {
+  "model": "qwen2.5:7b-instruct",
+  "pull_s": 0.3,
+  "pull_ok": true,
+  "runs": [
+   {
+    "gen_tok_s": 24.0,
+    "prompt_tok_s": 980.6,
+    "total_s": 2.2,
+    "tokens": 44,
+    "correct": true,
+    "answer": "Le d\u00e9bit moyen de Flink est le plus \u00e9lev\u00e9 avec un parall\u00e9lisme de 2, avec une valeur moyenne de 590 257 enregistrements par seconde."
+   },
+   {
+    "gen_tok_s": 23.6,
+    "prompt_tok_s": 1079.8,
+    "total_s": 1.7,
+    "tokens": 34,
+    "correct": true,
+    "answer": "La pr\u00e9paration Spark prend 738 secondes avec 2 ex\u00e9cuteurs et 416 secondes avec 4 ex\u00e9cuteurs."
+   },
+   {
+    "gen_tok_s": 23.3,
+    "prompt_tok_s": 1037.6,
+    "total_s": 1.8,
+    "tokens": 35,
+    "correct": true,
+    "answer": "Avec 3 scorers, le d\u00e9bit maximal est de 23 834 enregistrements par seconde, selon les donn\u00e9es fournies."
+   },
+   {
+    "gen_tok_s": 22.8,
+    "prompt_tok_s": 10464.4,
+    "total_s": 2.0,
+    "tokens": 44,
+    "correct": true,
+    "answer": "Le d\u00e9bit moyen de Flink est le plus \u00e9lev\u00e9 avec un parall\u00e9lisme de 2, avec une valeur moyenne de 590 257 enregistrements par seconde."
+   },
+   {
+    "gen_tok_s": 23.1,
+    "prompt_tok_s": 10253.2,
+    "total_s": 1.5,
+    "tokens": 34,
+    "correct": true,
+    "answer": "La pr\u00e9paration Spark prend 738 secondes avec 2 ex\u00e9cuteurs et 416 secondes avec 4 ex\u00e9cuteurs."
+   },
+   {
+    "gen_tok_s": 22.8,
+    "prompt_tok_s": 9726.6,
+    "total_s": 1.6,
+    "tokens": 35,
+    "correct": true,
+    "answer": "Avec 3 scorers, le d\u00e9bit maximal est de 23 834 enregistrements par seconde, selon les donn\u00e9es fournies."
+   }
+  ],
+  "ollama_ps": "qwen2.5:7b-instruct    845dbda0ea48    4.8 GB    100% GPU     4096       llamacpp    9 minutes from now",
+  "gpu_mem": "4671 MiB, 15360 MiB",
+  "avg_gen_tok_s": 23.3,
+  "avg_total_s": 1.8,
+  "correct": 6,
+  "n": 6
+ },
+ {
+  "model": "qwen2.5:14b-instruct",
+  "pull_s": 69.0,
+  "pull_ok": true,
+  "runs": [
+   {
+    "gen_tok_s": 17.0,
+    "prompt_tok_s": 564.9,
+    "total_s": 3.1,
+    "tokens": 43,
+    "correct": true,
+    "answer": "Le d\u00e9bit moyen de Flink est le plus \u00e9lev\u00e9 \u00e0 un parall\u00e9lisme de 2, avec une valeur moyenne de 590257 enregistrements par seconde."
+   },
+   {
+    "gen_tok_s": 17.1,
+    "prompt_tok_s": 658.8,
+    "total_s": 2.5,
+    "tokens": 34,
+    "correct": true,
+    "answer": "La pr\u00e9paration Spark prend 738 secondes avec 2 ex\u00e9cuteurs et 416 secondes avec 4 ex\u00e9cuteurs."
+   },
+   {
+    "gen_tok_s": 16.5,
+    "prompt_tok_s": 629.0,
+    "total_s": 5.1,
+    "tokens": 75,
+    "correct": true,
+    "answer": "Le d\u00e9bit maximal de Kafka avec 3 scorers est de 23834 enregistrements par seconde. Avec un seul scorateur, le d\u00e9bit est de 9546 enregistrements par seconde, et avec deux scorateurs, il est de 17865 enregistrements par seconde."
+   },
+   {
+    "gen_tok_s": 16.5,
+    "prompt_tok_s": 7558.2,
+    "total_s": 2.6,
+    "tokens": 41,
+    "correct": true,
+    "answer": "Le d\u00e9bit moyen de Flink est le plus \u00e9lev\u00e9 \u00e0 un parall\u00e9lisme de 2, avec une valeur de 590257 enregistrements par seconde."
+   },
+   {
+    "gen_tok_s": 16.5,
+    "prompt_tok_s": 7648.7,
+    "total_s": 2.2,
+    "tokens": 34,
+    "correct": true,
+    "answer": "La pr\u00e9paration Spark prend 738 secondes avec 2 ex\u00e9cuteurs et 416 secondes avec 4 ex\u00e9cuteurs."
+   },
+   {
+    "gen_tok_s": 15.9,
+    "prompt_tok_s": 7406.3,
+    "total_s": 4.8,
+    "tokens": 75,
+    "correct": true,
+    "answer": "Le d\u00e9bit maximal de Kafka avec 3 scorers est de 23834 enregistrements par seconde. Avec un seul scorateur, le d\u00e9bit est de 9546 enregistrements par seconde, et avec deux scorateurs, il est de 17865 enregistrements par seconde."
+   }
+  ],
+  "ollama_ps": "qwen2.5:14b-instruct    7cdf5a0187d5    9.5 GB    100% GPU     4096       llamacpp    9 minutes from now",
+  "gpu_mem": "9177 MiB, 15360 MiB",
+  "avg_gen_tok_s": 16.6,
+  "avg_total_s": 3.4,
+  "correct": 6,
+  "n": 6
+ },
+ {
+  "model": "qwen3.8:27b",
+  "pull_s": 199.2,
+  "pull_ok": true,
+  "runs": [
+   {
+    "gen_tok_s": 2.9,
+    "prompt_tok_s": 100.2,
+    "total_s": 14.4,
+    "tokens": 32,
+    "correct": true,
+    "answer": "Le d\u00e9bit moyen de Flink est le plus \u00e9lev\u00e9 pour un parallelisme de 2.\nSa valeur est de 590257."
+   },
+   {
+    "gen_tok_s": 3.5,
+    "prompt_tok_s": 103.7,
+    "total_s": 14.2,
+    "tokens": 39,
+    "correct": true,
+    "answer": "Selon les donn\u00e9es fournies, la pr\u00e9paration Spark prend 416 secondes avec 4 ex\u00e9cuteurs. Avec 2 ex\u00e9cuteurs, la dur\u00e9e est de 738 secondes."
+   },
+   {
+    "gen_tok_s": 2.5,
+    "prompt_tok_s": 98.5,
+    "total_s": 13.4,
+    "tokens": 25,
+    "correct": true,
+    "answer": "Selon les donn\u00e9es fournies, le d\u00e9bit Kafka avec 3 scorers est de 23834."
+   },
+   {
+    "gen_tok_s": 2.8,
+    "prompt_tok_s": 267.2,
+    "total_s": 13.0,
+    "tokens": 32,
+    "correct": true,
+    "answer": "Le d\u00e9bit moyen de Flink est le plus \u00e9lev\u00e9 pour un parallelisme de 2.\nSa valeur est de 590257."
+   },
+   {
+    "gen_tok_s": 3.4,
+    "prompt_tok_s": 266.3,
+    "total_s": 12.9,
+    "tokens": 39,
+    "correct": true,
+    "answer": "Selon les donn\u00e9es fournies, la pr\u00e9paration Spark prend 416 secondes avec 4 ex\u00e9cuteurs. Avec 2 ex\u00e9cuteurs, la dur\u00e9e est de 738 secondes."
+   },
+   {
+    "gen_tok_s": 2.5,
+    "prompt_tok_s": 254.5,
+    "total_s": 11.6,
+    "tokens": 25,
+    "correct": true,
+    "answer": "Selon les donn\u00e9es fournies, le d\u00e9bit Kafka avec 3 scorers est de 23834."
+   }
+  ],
+  "ollama_ps": "qwen3.8:27b    aaee06c39dcf    18 GB    26%/74% CPU/GPU    4096       llamacpp    9 minutes from now",
+  "gpu_mem": "14103 MiB, 15360 MiB",
+  "avg_gen_tok_s": 2.9,
+  "avg_total_s": 13.2,
+  "correct": 6,
+  "n": 6
+ }
+]

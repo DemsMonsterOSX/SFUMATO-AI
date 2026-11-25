@@ -1,0 +1,86 @@
+{
+ "label": "scorers=3",
+ "steps": [
+  {
+   "label": "scorers=3",
+   "target": 2400,
+   "producers": 1,
+   "produced_per_s": 2392,
+   "consumed_per_s": 2363,
+   "lag_end": 880,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=3",
+   "target": 4800,
+   "producers": 2,
+   "produced_per_s": 4785,
+   "consumed_per_s": 4759,
+   "lag_end": 760,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=3",
+   "target": 9600,
+   "producers": 4,
+   "produced_per_s": 9570,
+   "consumed_per_s": 9536,
+   "lag_end": 1020,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=3",
+   "target": 14400,
+   "producers": 6,
+   "produced_per_s": 14355,
+   "consumed_per_s": 14312,
+   "lag_end": 1280,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=3",
+   "target": 19200,
+   "producers": 7,
+   "produced_per_s": 19119,
+   "consumed_per_s": 19088,
+   "lag_end": 941,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=3",
+   "target": 24000,
+   "producers": 7,
+   "produced_per_s": 23846,
+   "consumed_per_s": 23808,
+   "lag_end": 1161,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=3",
+   "target": 30000,
+   "producers": 7,
+   "produced_per_s": 29842,
+   "consumed_per_s": 28399,
+   "lag_end": 43374,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  }
+ ],
+ "max_kept_up_per_s": 28399,
+ "ceiling": "highest target reached",
+ "step_seconds": 30,
+ "measured_at": "2026-11-25T21:15:16"
+}

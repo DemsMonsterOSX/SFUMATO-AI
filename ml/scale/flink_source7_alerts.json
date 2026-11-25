@@ -1,0 +1,19 @@
+{
+ "concentrated_source": {
+  "alert_windows": 1467,
+  "attack_windows": 1461,
+  "benign_windows": 6,
+  "precision": 0.9959,
+  "distinct_sources": 19,
+  "attack_sources": 16
+ },
+ "volume_only": {
+  "alert_windows": 29714,
+  "attack_windows": 1461,
+  "benign_windows": 28253,
+  "precision": 0.0492,
+  "distinct_sources": 682,
+  "attack_sources": 16
+ },
+ "attack_windows_missed_by_concentrated": 0
+}

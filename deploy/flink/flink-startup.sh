@@ -112,6 +112,17 @@ else
   sudo -u flink env JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 /opt/flink/bin/sql-client.sh -f /opt/flink-job/job.sql > /var/log/flink-sql-submit.log 2>&1 \
     && echo "FLINK_JOB_SUBMITTED" || { tail -20 /var/log/flink-sql-submit.log; fail "SQL job submission failed"; }
 fi
+# optional second SQL job on the same cluster (metadata flink-sql-2): the per-source rule next to the flow analytics
+attr flink-sql-2 | sed "s#@BOOTSTRAP@#$BOOT#g; s#@PARALLELISM@#$PAR#g" > /opt/flink-job/job2.sql
+if [ -s /opt/flink-job/job2.sql ]; then
+  JOB2=$(grep -oP "pipeline.name' = '\K[^']+" /opt/flink-job/job2.sql | head -1)
+  chown flink:flink /opt/flink-job/job2.sql
+  if [ -n "$JOB2" ] && curl -fsS http://127.0.0.1:8081/jobs/overview | grep -q "\"name\":\"$JOB2\""; then
+    echo "job $JOB2 already running"
+  else
+    sudo -u flink env JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 /opt/flink/bin/sql-client.sh -f /opt/flink-job/job2.sql > /var/log/flink-sql-submit2.log 2>&1       && echo "FLINK_JOB2_SUBMITTED $JOB2" || { tail -20 /var/log/flink-sql-submit2.log; echo "FLINK_JOB2_FAILED"; }
+  fi
+fi
 sleep 15
 NJOBS=$(curl -fsS http://127.0.0.1:8081/jobs/overview | python3 -c 'import sys,json;print(sum(1 for j in json.load(sys.stdin)["jobs"] if j["state"]=="RUNNING"))' 2>/dev/null || echo 0)
 echo "FLINK_RUNNING_JOBS $NJOBS"

@@ -1,11 +1,12 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Activity, BookOpen, Gauge, Brain, Bug, Database, FlaskConical, GitBranch, LayoutDashboard, Radar, Radio, Settings, TerminalSquare, ScrollText, ShieldHalf } from "lucide-react";
+import { Activity, BookOpen, Gauge, Network, Brain, Bug, Database, FlaskConical, GitBranch, LayoutDashboard, Radar, Radio, Settings, TerminalSquare, ScrollText, ShieldHalf } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { ReactNode } from "react";
 import { DaVinciAgent } from "@/components/davinci-agent";
+import { Splash } from "@/components/splash";
 import { useApi } from "@/hooks/useApi";
 import { cn } from "@/lib/utils";
 import { Dot } from "./ui";
@@ -21,6 +22,7 @@ const NAV = [
   { href: "/cves", label: "CVE Feed", icon: Bug },
   { href: "/stream", label: "Live Stream", icon: Radio },
   { href: "/scalability", label: "Scalability", icon: Gauge },
+  { href: "/architecture", label: "Architecture", icon: Network },
   { href: "/api-console", label: "API Console", icon: TerminalSquare },
   { href: "/logs", label: "Logs", icon: ScrollText },
   { href: "/simulator", label: "Incident Simulator", icon: FlaskConical },
@@ -39,6 +41,7 @@ export function Shell({ children }: { children: ReactNode }) {
   const { data: status, error } = useApi<Status>("status", 8000);
   return (
     <div className="flex min-h-screen">
+      <Splash />
       <aside className="sticky top-0 hidden h-screen w-[248px] shrink-0 flex-col border-r border-line bg-ink-950/70 px-4 py-5 backdrop-blur-xl lg:flex">
         <Link href="/" className="mb-8 flex items-center gap-3 px-2">
           <div className="relative grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-cyan-400 via-electric-500 to-violet-500 shadow-glow">

@@ -302,7 +302,7 @@ class KnowledgeBase:
             "built_at": m.get("built_at"), "loaded_at": self.loaded_at, "version": m.get("version"),
             "dataset": (m.get("source") or {}).get("repo"), "dataset_revision": (m.get("source") or {}).get("revision"),
             "license": m.get("source_license"), "domains": m.get("domains"), "stats": m.get("stats"),
-            "configured_repo": get_credentials().get("kb_hf_repo") or s.kb_hf_repo, "local_path": s.kb_local_path,
+            "configured_repo": get_credentials().get("kb_hf_repo") or s.kb_hf_repo, "configured_artifact": s.kb_artifact_uri, "local_path": s.kb_local_path,
             "top_k": s.kb_top_k, "min_score": s.kb_min_score,
             "avg_search_ms": round(sum(lat) / len(lat), 1) if lat else None,
         }

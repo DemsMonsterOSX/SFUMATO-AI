@@ -37,7 +37,7 @@ Wants=network-online.target
 User=ollama
 Environment=OLLAMA_HOST=0.0.0.0:11434
 Environment=OLLAMA_MODELS=/var/lib/ollama/models
-Environment=OLLAMA_KEEP_ALIVE=30m
+Environment=OLLAMA_KEEP_ALIVE=-1
 Environment=OLLAMA_NUM_PARALLEL=1
 Environment=HOME=/var/lib/ollama
 ExecStart=/usr/local/bin/ollama serve
@@ -58,7 +58,7 @@ fi
 echo "QWEN_READY model=$MODEL ollama=$VER"
 
 # warm-up and speed measurement (short fixed prompt; eval_count / eval_duration is the generation speed in tokens per second)
-R=$(curl -fsS http://127.0.0.1:11434/api/generate -d "{\"model\":\"$MODEL\",\"prompt\":\"In two sentences, what is a SOC analyst?\",\"stream\":false,\"options\":{\"num_predict\":80,\"temperature\":0}}" || true)
+R=$(curl -fsS http://127.0.0.1:11434/api/generate -d "{\"model\":\"$MODEL\",\"prompt\":\"In two sentences, what is a SOC analyst?\",\"stream\":false,\"options\":{\"num_ctx\":8192,\"num_predict\":80,\"temperature\":0},\"keep_alive\":-1}" || true)
 echo "$R" | python3 -c '
 import sys, json
 try:

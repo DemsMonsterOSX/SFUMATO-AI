@@ -158,7 +158,7 @@ export default function ObservatoryPage() {
             right={<Badge color={kb?.state === "ready" ? "#34d399" : kb?.state === "error" ? "#fb7185" : "#64748b"}>{kb?.state ?? "…"}</Badge>} />
           {kb ? (
             <div>
-              <KV k="Source" v={kb.source ?? kb.configured_repo ?? "not configured (KB_ARTIFACT_URI / KB_HF_REPO)"} mono />
+              <KV k="Source" v={kb.source ?? kb.configured_artifact ?? kb.configured_repo ?? "not configured (KB_ARTIFACT_URI / KB_HF_REPO)"} mono />
               <KV k="Store" v={kb.store ?? "—"} />
               <KV k="Passages / records" v={kb.chunks != null ? `${kb.chunks.toLocaleString()} / ${(kb.records ?? 0).toLocaleString()}` : "—"} />
               <KV k="Embedding model" v={kb.embedding_model} mono />

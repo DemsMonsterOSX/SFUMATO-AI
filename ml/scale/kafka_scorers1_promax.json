@@ -1,0 +1,53 @@
+{
+ "label": "scorers=1",
+ "steps": [
+  {
+   "label": "scorers=1",
+   "target": 2400,
+   "producers": 1,
+   "produced_per_s": 2392,
+   "consumed_per_s": 2379,
+   "lag_end": 380,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=1",
+   "target": 4800,
+   "producers": 2,
+   "produced_per_s": 4784,
+   "consumed_per_s": 4776,
+   "lag_end": 260,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=1",
+   "target": 9600,
+   "producers": 4,
+   "produced_per_s": 9569,
+   "consumed_per_s": 9569,
+   "lag_end": 20,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=1",
+   "target": 14400,
+   "producers": 6,
+   "produced_per_s": 14343,
+   "consumed_per_s": 9464,
+   "lag_end": 146680,
+   "errors": 0,
+   "kept_up": false,
+   "producer_limited": false
+  }
+ ],
+ "max_kept_up_per_s": 9569,
+ "ceiling": "scorers fell behind",
+ "step_seconds": 30,
+ "measured_at": "2026-11-25T21:03:59"
+}

@@ -1,0 +1,75 @@
+{
+ "label": "scorers=2",
+ "steps": [
+  {
+   "label": "scorers=2",
+   "target": 2400,
+   "producers": 1,
+   "produced_per_s": 2392,
+   "consumed_per_s": 2379,
+   "lag_end": 380,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 4800,
+   "producers": 2,
+   "produced_per_s": 4785,
+   "consumed_per_s": 4776,
+   "lag_end": 260,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 9600,
+   "producers": 4,
+   "produced_per_s": 9570,
+   "consumed_per_s": 9553,
+   "lag_end": 520,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 14400,
+   "producers": 6,
+   "produced_per_s": 14352,
+   "consumed_per_s": 14343,
+   "lag_end": 280,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 19200,
+   "producers": 7,
+   "produced_per_s": 19106,
+   "consumed_per_s": 18427,
+   "lag_end": 20441,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "scorers=2",
+   "target": 24000,
+   "producers": 7,
+   "produced_per_s": 23852,
+   "consumed_per_s": 19180,
+   "lag_end": 140503,
+   "errors": 0,
+   "kept_up": false,
+   "producer_limited": false
+  }
+ ],
+ "max_kept_up_per_s": 18427,
+ "ceiling": "scorers fell behind",
+ "step_seconds": 30,
+ "measured_at": "2026-11-25T21:09:18"
+}

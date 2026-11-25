@@ -20,7 +20,7 @@ from app.schemas.incident import IncidentIn
 from app.services import cve as cve_lib
 from app.services import datasets as ds_lib
 from app.services import docs_index
-from app.services import davinci, ingestion, triage
+from app.services import davinci, gce, ingestion, platform_context, triage
 from app.services import procedures as proc_lib
 
 router = APIRouter(prefix="/api/v1/bigdata", tags=["bigdata"], dependencies=[Depends(require_api_key)])
@@ -89,6 +89,11 @@ def scalability():
     return {"spark": read("spark_scale.json"), "kafka": kafka, "api": api, "published": bool(kafka or api or read("spark_scale.json"))}
 
 
+@router.get("/architecture", summary="Live state of the project's virtual machines (Compute API) and the quotas that bound the layout; live=false when it cannot be read")
+def architecture():
+    return gce.snapshot()
+
+
 class TriageIn(BaseModel):
     src: str = Field(min_length=3, max_length=64, description="source address of the window")
     window_start: datetime
@@ -124,12 +129,13 @@ def triage_window(body: TriageIn, request: Request):
 class AgentRequest(BaseModel):
     question: str = Field(min_length=2, max_length=500)
     use_llm: bool = True
+    provider: Literal["auto", "qwen", "api"] = Field("auto", description="engine for the rewrite: the internal Qwen, an external API, or the configured default")
 
 
 @router.get("/agent/info", summary="Da Vinci AI: suggested questions and which engine would answer")
 async def agent_info():
     prov = await resolve_agent_provider()
-    return {"suggestions": davinci.SUGGESTIONS, "llm_available": prov["selected"] != "deterministic",
+    return {"suggestions": davinci.SUGGESTIONS, "options": prov["options"], "llm_available": prov["selected"] != "deterministic",
             "provider": prov["selected"], "model": prov["model"], "reason": prov.get("agent_note") or prov["reason"]}
 
 
@@ -139,9 +145,10 @@ async def agent(req: AgentRequest):
     extra = {"attacks_by_day": _load("attacks_by_day.json"), "cve": cve_lib.summary()[0]}
     question = davinci.clean_question(req.question)
     base = davinci.rules_answer(question, results, advanced, extra)
-    # response procedures: retrieved when the question asks what to do, or when no Big Data rule matched
+    plat = platform_context.gather(question)
+    # response procedures: retrieved when the question asks what to do, or when nothing else (Big Data rule, platform data) matched
     hits: list[dict] = []
-    if proc_lib.available() and (davinci.is_procedure_question(question) or base["matched"] is None):
+    if proc_lib.available() and (davinci.is_procedure_question(question) or (base["matched"] is None and not plat)):
         found = [h for h in proc_lib.search(question, 3) if h["score"] >= 3]
         hits = [x for x in (proc_lib.get(h["id"]) for h in found) if x]
         if hits:
@@ -165,6 +172,12 @@ async def agent(req: AgentRequest):
             base = {"answer": "Jeux de données exposés dans le bucket : " + " ; ".join(
                 f"{x['prefix']} ({x.get('files', '?')} fichiers, {x.get('subfolders', 0)} sous-dossiers, {round(x.get('bytes', 0) / 1e9, 2)} Go) : {x['description']}" for x in listing)
                 + ". Ils se parcourent dans la page API Console, onglet Datasets (CSV).", "sources": ["datasets"], "matched": "bucket"}
+    # platform data beyond the Spark results: scalability, open-set and PCAP experiments, machines, incidents (only the topics the question touches)
+    if plat:
+        extra["platform"] = plat
+        text = platform_context.describe(plat)
+        if text and base["matched"] in (None, "pipeline", "limits"):
+            base = {"answer": text, "sources": [f"platform/{t}" for t in plat], "matched": "platform"}
     # project documentation: fallback answer and extra context for the LLM
     doc_hits = [d for d in docs_index.search(question, 3) if d["score"] >= 2.5]
     if doc_hits:
@@ -175,11 +188,11 @@ async def agent(req: AgentRequest):
         else:
             base = {**base, "sources": list(dict.fromkeys(base.get("sources", []) + [f"{d['file']}#{d['section']}" for d in doc_hits[:2]]))}
     out = {**base, "engine": "rules", "model": "sfumato-davinci-rules-v1", "note": None}
-    if not req.use_llm or (not results and not advanced and not hits and not extra.get("cve") and not extra.get("docs")):
+    if not req.use_llm or (not results and not advanced and not hits and not extra.get("cve") and not extra.get("docs") and not extra.get("platform")):
         return out
-    prov = await resolve_agent_provider()
+    prov = await resolve_agent_provider(req.provider)
     if prov["selected"] == "deterministic":
-        out["note"] = f"LLM unavailable ({prov['reason']}): rules answer."
+        out["note"] = f"LLM unavailable ({prov.get('agent_note') or prov['reason']}): rules answer."
         return out
     if prov["selected"] == "ollama":   # small CPU model: short context, short system prompt
         user = "Question: " + question + "\n\n" + davinci.llm_context_compact(base, extra)

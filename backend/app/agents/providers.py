@@ -162,17 +162,31 @@ def reset_status_cache() -> None:
     _status_cache.update(at=0.0, value=None)
 
 
-async def resolve_agent_provider() -> dict:
-    """Provider of the Da Vinci AI agent. DAVINCI_PROVIDER=ollama prefers the internal Qwen (Ollama on its own VM) when it answers;
-    otherwise the global choice (resolve_provider) applies. Kept apart from the SOAR investigator on purpose: the small CPU model is
-    fine for short answers about the project but too slow for the long investigation prompts."""
+async def resolve_agent_provider(choice: str = "auto") -> dict:
+    """Provider of the Da Vinci AI agent. `choice` comes from the pop-up: "qwen" (internal Ollama), "api" (an external provider whose key is
+    configured: the explicit choice of the user for this question) or "auto". With "auto", DAVINCI_PROVIDER=ollama prefers the internal Qwen
+    when it answers, otherwise the global choice (resolve_provider) applies. Kept apart from the SOAR investigator on purpose: the small CPU
+    model is fine for short answers about the project but too slow for the long investigation prompts."""
     import os
     base = await resolve_provider()
-    if os.environ.get("DAVINCI_PROVIDER", "").lower() != "ollama":
-        return base
     s = get_settings()
     url = get_credentials().get("ollama_url")
     models = await ollama_models(url) if url else None
-    if models is not None and any(m == s.ollama_model or m.split(":")[0] == s.ollama_model.split(":")[0] for m in models):
+    qwen_ok = models is not None and any(m == s.ollama_model or m.split(":")[0] == s.ollama_model.split(":")[0] for m in models)
+    api = next((p for p in ("anthropic", "openai") if base.get(p, {}).get("configured")), None)
+    base = {**base, "options": {"qwen": {"available": qwen_ok, "model": s.ollama_model},
+                                "api": {"available": api is not None, "provider": api,
+                                        "model": {"anthropic": s.anthropic_model, "openai": s.openai_model}.get(api or "", "")}}}
+    if choice == "qwen":
+        if qwen_ok:
+            return {**base, "selected": "ollama", "model": s.ollama_model, "reason": "chosen in the pop-up: internal Qwen"}
+        return {**base, "selected": "deterministic", "model": "sfumato-davinci-rules-v1", "agent_note": "Qwen chosen but not reachable (is the sfumato-qwen VM on?): rules answer"}
+    if choice == "api":
+        if api:
+            return {**base, "selected": api, "model": base["options"]["api"]["model"], "reason": f"chosen in the pop-up: {api} API"}
+        return {**base, "selected": "deterministic", "model": "sfumato-davinci-rules-v1", "agent_note": "API chosen but no API key is configured (Settings): rules answer"}
+    if os.environ.get("DAVINCI_PROVIDER", "").lower() != "ollama":
+        return base
+    if qwen_ok:
         return {**base, "selected": "ollama", "model": s.ollama_model, "reason": "DAVINCI_PROVIDER=ollama: internal Qwen reachable"}
     return {**base, "agent_note": "internal Qwen not reachable: using the global provider or the rules"}
