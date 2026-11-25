@@ -14,6 +14,8 @@ attr() { curl -fsS -H 'Metadata-Flavor: Google' "$MD/instance/attributes/$1" 2>/
 fail() { echo "FLINK_FAILED: $*"; exit 1; }
 FV=$(attr flink-version); FSHA=$(attr flink-sha512); CV=$(attr kafka-connector-version); CSHA=$(attr kafka-connector-sha1)
 BOOT=$(attr kafka-bootstrap); BUCKET=$(attr stream-bucket)
+SLOTS=$(attr flink-slots); SLOTS=${SLOTS:-2}; TMMEM=$(attr flink-tm-mem); TMMEM=${TMMEM:-1700m}; JMMEM=$(attr flink-jm-mem); JMMEM=${JMMEM:-1024m}
+PAR=$(attr flink-parallelism); PAR=${PAR:-1}; JOBNAME=$(attr flink-job-name); JOBNAME=${JOBNAME:-sfumato-flow-analytics}; READER=$(attr flink-reader); READER=${READER:-1}
 [ -n "$FV" ] && [ -n "$FSHA" ] && [ -n "$CV" ] && [ -n "$CSHA" ] && [ -n "$BOOT" ] && [ -n "$BUCKET" ] || fail "missing metadata"
 
 if ! swapon --show | grep -q /swapfile; then
@@ -49,11 +51,13 @@ fi
 # memory for an e2-medium (4 GB): JobManager 1 GB, TaskManager 1.6 GB, the rest for the OS and the reader
 FC=/opt/flink/conf/config.yaml
 [ -f "$FC" ] || FC=/opt/flink/conf/flink-conf.yaml
-python3 - "$FC" <<'PY'
+python3 - "$FC" "$JMMEM" "$TMMEM" "$SLOTS" <<'PY'
 import re, sys
 p = sys.argv[1]
-want = {"jobmanager.memory.process.size": "1024m", "taskmanager.memory.process.size": "1700m", "taskmanager.numberOfTaskSlots": "2",
-        "parallelism.default": "2", "rest.address": "0.0.0.0", "rest.bind-address": "0.0.0.0", "jobmanager.rpc.address": "localhost"}
+JM, TM, SL = sys.argv[2], sys.argv[3], sys.argv[4]
+want = {"jobmanager.memory.process.size": "__JMMEM__", "taskmanager.memory.process.size": "__TMMEM__", "taskmanager.numberOfTaskSlots": "__SLOTS__",
+        "parallelism.default": "__SLOTS__", "rest.address": "0.0.0.0", "rest.bind-address": "0.0.0.0", "jobmanager.rpc.address": "localhost"}
+want = {k: v.replace("__JMMEM__", JM).replace("__TMMEM__", TM).replace("__SLOTS__", SL) for k, v in want.items()}
 txt = open(p).read()
 if p.endswith("config.yaml"):   # Flink 1.19+: flat keys are accepted in config.yaml
     for k, v in want.items():
@@ -99,9 +103,10 @@ done
 echo "FLINK_READY version=$FV taskmanagers=$n"
 
 # the SQL job (submitted once: skipped when a job with this name is already running)
-attr flink-sql | sed "s#@BOOTSTRAP@#$BOOT#g" > /opt/flink-job/job.sql
+attr flink-sql | sed "s#@BOOTSTRAP@#$BOOT#g; s#@PARALLELISM@#$PAR#g" > /opt/flink-job/job.sql
+cp /opt/flink-job/job.sql /opt/flink-job/template.sql
 chown flink:flink /opt/flink-job/job.sql
-if curl -fsS http://127.0.0.1:8081/jobs/overview | grep -q '"name":"sfumato-flow-analytics"'; then
+if curl -fsS http://127.0.0.1:8081/jobs/overview | grep -q "\"name\":\"$JOBNAME\""; then
   echo "job already running"
 else
   sudo -u flink env JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64 /opt/flink/bin/sql-client.sh -f /opt/flink-job/job.sql > /var/log/flink-sql-submit.log 2>&1 \
@@ -114,6 +119,7 @@ if [ "$NJOBS" -lt 2 ] 2>/dev/null; then
   echo "FLINK_SQL_LOG_BEGIN"; tail -40 /var/log/flink-sql-submit.log; echo "FLINK_SQL_LOG_END"
 fi
 
+if [ "$READER" = "0" ]; then echo "reader disabled"; echo "FLINK_ALL_DONE"; exit 0; fi
 # results reader (Python): code from the bucket (the same app.tgz as the Kafka VMs), published every 8 seconds
 TOKEN=$(curl -fsS -H 'Metadata-Flavor: Google' "$MD/instance/service-accounts/default/token" | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])')
 get() { local o; o=$(python3 -c 'import sys,urllib.parse;print(urllib.parse.quote(sys.argv[1],safe=""))' "$1"); curl -fsS -H "Authorization: Bearer $TOKEN" "https://storage.googleapis.com/storage/v1/b/$BUCKET/o/$o?alt=media" -o "$2"; }

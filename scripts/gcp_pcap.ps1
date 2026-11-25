@@ -1,6 +1,7 @@
 <#
  One day of CSE-CIC-IDS2018 raw traffic: pcap.zip -> Zeek (container) -> conn logs as Parquet in the bucket, on one Spot VM.
 
+   .\scripts\gcp_pcap.ps1 up -Yes -Day Thursday-15-02-2018 -Prefix bigdata/pcap/2018-02-15   one VM per day (named sfumato-pcap-<ddmm>), run several in parallel
    .\scripts\gcp_pcap.ps1 up -Yes       create the VM (it downloads, unzips, runs Zeek, uploads, then powers off)
    .\scripts\gcp_pcap.ps1 status        VM state and the last progress markers from the serial console
    .\scripts\gcp_pcap.ps1 delete -Yes   delete the VM and its disk (do it as soon as the work is done)
@@ -19,20 +20,24 @@ param(
   [string]$Prefix = "bigdata/pcap/2018-02-14",
   [string]$MachineType = "e2-standard-8",
   [int]$DiskGb = 250,
+  [string]$DiskType = "pd-balanced",   # pd-balanced counts against the 500 GB regional SSD quota: use pd-standard for a third VM
   [int]$MaxHours = 8,
   [int]$Workers = 6,
+  [string]$VmName = "",
+  [string]$File = "pcap.zip",   # 20 Feb 2018 is a pcap.rar
   [switch]$Yes
 )
 $ErrorActionPreference = "Continue"
 $root = Split-Path -Parent $PSScriptRoot
 $g = (Get-Command gcloud.cmd).Source
-$vm = "sfumato-pcap"
+if (-not $VmName) { $VmName = "sfumato-pcap-" + ($Day.Substring($Day.Length - 10, 5).Replace("-", "")) }
+$vm = $VmName
 $sa = "sfumato-stream@$Project.iam.gserviceaccount.com"   # objectUser on the bucket (created by gcp_stream.ps1 up)
 function G { $o = & $g @args 2>&1 | ForEach-Object { "$_" } | Out-String; $script:rc = $LASTEXITCODE; return $o.Trim() }
 
 switch ($Action) {
   "up" {
-    $url = "https://cse-cic-ids2018.s3.amazonaws.com/" + [uri]::EscapeDataString("Original Network Traffic and Log data") + "/$Day/pcap.zip"
+    $url = "https://cse-cic-ids2018.s3.amazonaws.com/" + [uri]::EscapeDataString("Original Network Traffic and Log data") + "/$Day/$File"
     Write-Host "Creates $vm ($MachineType Spot, $DiskGb GB pd-balanced), downloads about 39.9 GB from the public bucket, powers off after at most $MaxHours h. Cost not measured." -ForegroundColor Yellow
     if (-not $Yes) { $a = Read-Host "Proceed? (y/N)"; if ($a -notmatch '^[yY]') { Write-Host "Cancelled."; exit 1 } }
     $null = G compute instances describe $vm "--zone=$Zone" "--project=$Project"
@@ -45,7 +50,7 @@ switch ($Action) {
     [IO.File]::WriteAllText($startup, ((Get-Content (Join-Path $root "deploy\pcap\pcap-startup.sh") -Raw) -replace "`r`n", "`n"))
     $files += "startup-script=$startup"
     $o = G compute instances create $vm "--project=$Project" "--zone=$Zone" "--machine-type=$MachineType" --provisioning-model=SPOT --instance-termination-action=STOP `
-      --image-family=debian-12 --image-project=debian-cloud "--boot-disk-size=${DiskGb}GB" --boot-disk-type=pd-balanced "--service-account=$sa" --scopes=cloud-platform `
+      --image-family=debian-12 --image-project=debian-cloud "--boot-disk-size=${DiskGb}GB" "--boot-disk-type=$DiskType" "--service-account=$sa" --scopes=cloud-platform `
       --shielded-secure-boot ("--metadata-from-file=" + ($files -join ","))
     Write-Host $o
     if ($rc -ne 0) { exit 1 }

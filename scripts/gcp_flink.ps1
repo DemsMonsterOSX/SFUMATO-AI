@@ -16,6 +16,13 @@ param(
   [string]$Zone = "us-central1-a",
   [string]$Bucket = "sfumato-soc-4ab8ab-artifacts",
   [string]$MachineType = "e2-medium",
+  [string]$VmName = "sfumato-flink",
+  [string]$SqlFile = "streaming\flink\job.sql",
+  [string]$JobName = "sfumato-flow-analytics",
+  [int]$Slots = 2,
+  [string]$TmMem = "1700m",
+  [int]$Parallelism = 1,
+  [string]$Reader = "1",   # 0 = no results reader (experiment VMs)
   [switch]$Yes
 )
 $ErrorActionPreference = "Continue"
@@ -24,7 +31,7 @@ if (-not (Get-Command gcloud.cmd -ErrorAction SilentlyContinue)) {
   $p = Join-Path $env:LOCALAPPDATA "Google\Cloud SDK\google-cloud-sdk\bin"; if (Test-Path $p) { $env:Path += ";$p" } else { Write-Host "gcloud not found" -ForegroundColor Red; exit 1 }
 }
 $g = (Get-Command gcloud.cmd).Source
-$vm = "sfumato-flink"
+$vm = $VmName
 $sa = "sfumato-stream@$Project.iam.gserviceaccount.com"
 $fver = "1.20.5"
 # SHA-512 published next to the archive: https://downloads.apache.org/flink/flink-1.20.5/flink-1.20.5-bin-scala_2.12.tgz.sha512
@@ -44,7 +51,7 @@ switch ($Action) {
     if ($rc -eq 0) { Write-Host "$vm exists: use start / status" } else {
       $mdir = Join-Path ([IO.Path]::GetTempPath()) "sfumato-flink-meta"
       New-Item -ItemType Directory -Force $mdir | Out-Null
-      $pairs = @{ "flink-version" = $fver; "flink-sha512" = $fsha; "kafka-connector-version" = $cver; "kafka-connector-sha1" = $csha; "kafka-bootstrap" = $boot; "stream-bucket" = $Bucket }
+      $pairs = @{ "flink-version" = $fver; "flink-sha512" = $fsha; "kafka-connector-version" = $cver; "kafka-connector-sha1" = $csha; "kafka-bootstrap" = $boot; "stream-bucket" = $Bucket; "flink-slots" = "$Slots"; "flink-tm-mem" = $TmMem; "flink-parallelism" = "$Parallelism"; "flink-job-name" = $JobName; "flink-reader" = $Reader }
       $files = @()
       foreach ($k in $pairs.Keys) { $f = Join-Path $mdir $k; [IO.File]::WriteAllText($f, [string]$pairs[$k]); $files += "$k=$f" }
       $files += "flink-sql=" + (Join-Path $root "streaming\flink\job.sql")

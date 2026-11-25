@@ -5,19 +5,22 @@ Nothing is invented here: when the Spark job has not been run and published, `re
 from __future__ import annotations
 
 import json
+from datetime import datetime
 from pathlib import Path
+from typing import Literal
 
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from pydantic import BaseModel, Field
 
 from app.core.config import get_settings
 from app.agents.providers import CALLERS, LLMError, llm_slot, resolve_agent_provider, resolve_provider
 from app.core.ttlcache import ttl_cache
-from app.core.security import require_api_key
+from app.core.security import audit, require_api_key
+from app.schemas.incident import IncidentIn
 from app.services import cve as cve_lib
 from app.services import datasets as ds_lib
 from app.services import docs_index
-from app.services import davinci
+from app.services import davinci, ingestion, triage
 from app.services import procedures as proc_lib
 
 router = APIRouter(prefix="/api/v1/bigdata", tags=["bigdata"], dependencies=[Depends(require_api_key)])
@@ -84,6 +87,38 @@ def scalability():
                 api.setdefault(doc.get("endpoint", f.stem), {})[kind] = doc
     kafka = [x for x in (read(f"kafka_scorers{k}.json") for k in (1, 2, 3)) if x]
     return {"spark": read("spark_scale.json"), "kafka": kafka, "api": api, "published": bool(kafka or api or read("spark_scale.json"))}
+
+
+class TriageIn(BaseModel):
+    src: str = Field(min_length=3, max_length=64, description="source address of the window")
+    window_start: datetime
+    stage1: Literal["attack", "benign", "unknown"] = Field(description="verdict of the open-set detector (bigdata/open_set.py)")
+    n: int = Field(ge=0, description="connections from the source in the 60 s window")
+    n_dst: int = Field(ge=0, description="distinct destination hosts")
+    n_dport: int = Field(ge=0, description="distinct destination ports")
+    top_port_share: float = Field(ge=0, le=1, description="share of the connections on the most used port")
+    dst_ip: str | None = Field(None, max_length=64)
+    dst_port: int | None = Field(None, ge=0, le=65535)
+    open_incident: bool = True
+
+
+@router.post("/triage", summary="Route a per-source window: attack, rule-confirmed, human queue or nothing; opens an incident with a suggested procedure")
+def triage_window(body: TriageIn, request: Request):
+    decision = triage.route(body.stage1, body.n, body.n_dst, body.top_port_share)
+    out: dict = {"src": body.src, **decision, "incident_id": None, "procedure": None}
+    if decision["route"] == "no_action":
+        return out
+    out["procedure"] = triage.suggest_procedure(body.dst_port)
+    payload = triage.build_incident(body.src, body.window_start, {"n": body.n, "n_dst": body.n_dst, "n_dport": body.n_dport,
+                                    "top_port_share": body.top_port_share}, decision, out["procedure"], body.dst_ip, body.dst_port)
+    if body.open_incident:
+        try:
+            inc = ingestion.submit(IncidentIn(**payload), None, "api", True)
+        except Exception as e:  # noqa: BLE001
+            raise HTTPException(422, f"the incident could not be created ({type(e).__name__})")
+        out["incident_id"] = inc.incident_id
+        audit(request, "triage.incident", inc.incident_id, {"route": decision["route"]})
+    return out
 
 
 class AgentRequest(BaseModel):

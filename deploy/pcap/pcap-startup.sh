@@ -23,24 +23,29 @@ systemctl is-active --quiet pcap-deadline.timer || systemd-run --unit=pcap-deadl
 
 stage() { say "PCAP_STAGE $1"; }
 stage packages
-if ! command -v docker >/dev/null || ! command -v unzip >/dev/null; then
-  apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker.io unzip curl python3-venv >/dev/null || fail "apt"
+if ! command -v docker >/dev/null || ! command -v unzip >/dev/null || ! command -v bsdtar >/dev/null; then
+  apt-get update -qq && DEBIAN_FRONTEND=noninteractive apt-get install -y -qq docker.io unzip curl python3-venv libarchive-tools >/dev/null || fail "apt"
 fi
 [ -x $S/venv/bin/python ] || { python3 -m venv $S/venv && $S/venv/bin/pip install -q pyarrow pandas || fail "pip"; }
 
 stage download
+ARCH=$W/archive.${URL##*.}
 if [ ! -f $W/pcap.ok ] && [ ! -d $W/pcap ]; then
   SIZE=$(curl -fsSIL "$URL" | tr -d '\r' | awk 'tolower($1)=="content-length:"{s=$2} END{print s}')
   [ -n "$SIZE" ] || fail "no content-length"
-  curl -fL -C - --retry 30 --retry-delay 15 --retry-all-errors -o $W/pcap.zip "$URL" || fail "download"
-  [ "$(stat -c %s $W/pcap.zip)" = "$SIZE" ] || fail "size mismatch ($(stat -c %s $W/pcap.zip) vs $SIZE)"
+  curl -fL -C - --retry 30 --retry-delay 15 --retry-all-errors -o $ARCH "$URL" || fail "download"
+  [ "$(stat -c %s $ARCH)" = "$SIZE" ] || fail "size mismatch ($(stat -c %s $ARCH) vs $SIZE)"
   say "downloaded $SIZE bytes"
 fi
 
 stage unzip
 if [ ! -d $W/pcap ]; then
-  mkdir -p $W/pcap.tmp && unzip -q -o $W/pcap.zip -d $W/pcap.tmp || fail "unzip"
-  mv $W/pcap.tmp $W/pcap && rm -f $W/pcap.zip
+  mkdir -p $W/pcap.tmp
+  case "$ARCH" in
+    *.rar) bsdtar -xf $ARCH -C $W/pcap.tmp || fail "unrar" ;;
+    *) unzip -q -o $ARCH -d $W/pcap.tmp || fail "unzip" ;;
+  esac
+  mv $W/pcap.tmp $W/pcap && rm -f $ARCH
 fi
 df -h $W | tail -1 | tee -a $LOG >/dev/null
 find $W/pcap -type f | head -50 > $S/files-sample.txt
