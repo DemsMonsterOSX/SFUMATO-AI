@@ -1,0 +1,203 @@
+{
+ "families": [
+  "ddos_loic_http",
+  "ddos_loic_udp",
+  "dos_goldeneye",
+  "dos_hulk",
+  "dos_slowhttptest",
+  "dos_slowloris",
+  "ftp_bruteforce",
+  "ssh_bruteforce"
+ ],
+ "days": [
+  "2018-02-14",
+  "2018-02-15",
+  "2018-02-16",
+  "2018-02-20"
+ ],
+ "thresholds": {
+  "HI": 0.9,
+  "LO": 0.1,
+  "STD_MAX": 0.15,
+  "K": 5
+ },
+ "benign_test_hours": 26.02,
+ "by_family": {
+  "ddos_loic_http": {
+   "attack_windows": 633,
+   "benign_windows": 835263,
+   "plain": {
+    "recall": 0.9953,
+    "false_positives": 4
+   },
+   "abstain": {
+    "recall_auto": 0.0,
+    "unknown_attack_share": 0.9953,
+    "missed_as_benign": 0.0047,
+    "false_positives": 2,
+    "benign_unknown_share": 0.00447
+   },
+   "escalate": {
+    "recall_total": 0.9905,
+    "attack_sent_to_human": 0.0047,
+    "false_positives": 2,
+    "benign_to_human": 3730,
+    "human_windows_per_hour": 143.5
+   }
+  },
+  "ddos_loic_udp": {
+   "attack_windows": 10,
+   "benign_windows": 835263,
+   "plain": {
+    "recall": 0.0,
+    "false_positives": 3
+   },
+   "abstain": {
+    "recall_auto": 0.0,
+    "unknown_attack_share": 0.6,
+    "missed_as_benign": 0.4,
+    "false_positives": 2,
+    "benign_unknown_share": 0.00445
+   },
+   "escalate": {
+    "recall_total": 0.1,
+    "attack_sent_to_human": 0.5,
+    "false_positives": 2,
+    "benign_to_human": 3719,
+    "human_windows_per_hour": 143.1
+   }
+  },
+  "dos_goldeneye": {
+   "attack_windows": 20,
+   "benign_windows": 835263,
+   "plain": {
+    "recall": 0.95,
+    "false_positives": 11
+   },
+   "abstain": {
+    "recall_auto": 0.95,
+    "unknown_attack_share": 0.0,
+    "missed_as_benign": 0.05,
+    "false_positives": 2,
+    "benign_unknown_share": 0.00446
+   },
+   "escalate": {
+    "recall_total": 0.95,
+    "attack_sent_to_human": 0.0,
+    "false_positives": 2,
+    "benign_to_human": 3728,
+    "human_windows_per_hour": 143.3
+   }
+  },
+  "dos_hulk": {
+   "attack_windows": 14,
+   "benign_windows": 835263,
+   "plain": {
+    "recall": 1.0,
+    "false_positives": 2
+   },
+   "abstain": {
+    "recall_auto": 1.0,
+    "unknown_attack_share": 0.0,
+    "missed_as_benign": 0.0,
+    "false_positives": 0,
+    "benign_unknown_share": 0.00447
+   },
+   "escalate": {
+    "recall_total": 1.0,
+    "attack_sent_to_human": 0.0,
+    "false_positives": 2,
+    "benign_to_human": 3734,
+    "human_windows_per_hour": 143.5
+   }
+  },
+  "dos_slowhttptest": {
+   "attack_windows": 54,
+   "benign_windows": 835263,
+   "plain": {
+    "recall": 1.0,
+    "false_positives": 5
+   },
+   "abstain": {
+    "recall_auto": 1.0,
+    "unknown_attack_share": 0.0,
+    "missed_as_benign": 0.0,
+    "false_positives": 0,
+    "benign_unknown_share": 0.00448
+   },
+   "escalate": {
+    "recall_total": 1.0,
+    "attack_sent_to_human": 0.0,
+    "false_positives": 2,
+    "benign_to_human": 3741,
+    "human_windows_per_hour": 143.8
+   }
+  },
+  "dos_slowloris": {
+   "attack_windows": 42,
+   "benign_windows": 835263,
+   "plain": {
+    "recall": 0.5238,
+    "false_positives": 2
+   },
+   "abstain": {
+    "recall_auto": 0.0476,
+    "unknown_attack_share": 0.5714,
+    "missed_as_benign": 0.381,
+    "false_positives": 2,
+    "benign_unknown_share": 0.00444
+   },
+   "escalate": {
+    "recall_total": 0.1429,
+    "attack_sent_to_human": 0.4762,
+    "false_positives": 2,
+    "benign_to_human": 3710,
+    "human_windows_per_hour": 143.4
+   }
+  },
+  "ftp_bruteforce": {
+   "attack_windows": 98,
+   "benign_windows": 835263,
+   "plain": {
+    "recall": 1.0,
+    "false_positives": 2
+   },
+   "abstain": {
+    "recall_auto": 1.0,
+    "unknown_attack_share": 0.0,
+    "missed_as_benign": 0.0,
+    "false_positives": 0,
+    "benign_unknown_share": 0.00445
+   },
+   "escalate": {
+    "recall_total": 1.0,
+    "attack_sent_to_human": 0.0,
+    "false_positives": 2,
+    "benign_to_human": 3719,
+    "human_windows_per_hour": 142.9
+   }
+  },
+  "ssh_bruteforce": {
+   "attack_windows": 92,
+   "benign_windows": 835263,
+   "plain": {
+    "recall": 1.0,
+    "false_positives": 17
+   },
+   "abstain": {
+    "recall_auto": 1.0,
+    "unknown_attack_share": 0.0,
+    "missed_as_benign": 0.0,
+    "false_positives": 0,
+    "benign_unknown_share": 0.00446
+   },
+   "escalate": {
+    "recall_total": 1.0,
+    "attack_sent_to_human": 0.0,
+    "false_positives": 2,
+    "benign_to_human": 3723,
+    "human_windows_per_hour": 143.1
+   }
+  }
+ }
+}
