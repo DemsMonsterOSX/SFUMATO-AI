@@ -1,0 +1,1 @@
+{"parallelism": 2, "records_expected": 23669308, "records_read": 23669308, "seconds": 40.1, "avg_records_per_s": 590257, "peak_records_per_s": 996666, "samples": [[0.0, 0], [10.0, 12411276], [25.1, 17394605], [40.1, 23669308]]}

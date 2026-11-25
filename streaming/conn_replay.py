@@ -25,7 +25,7 @@ def ensure_topics(bootstrap: str, partitions: int) -> None:
     adm = AdminClient({"bootstrap.servers": bootstrap})
     have = set(adm.list_topics(timeout=20).topics)
     new = [NewTopic(t, num_partitions=partitions, replication_factor=3, config={"min.insync.replicas": "2"}) for t in TOPICS if t not in have]
-    for t, f in adm.create_topics(new).items():
+    for t, f in (adm.create_topics(new).items() if new else []):
         f.result()
         print("created topic", t, flush=True)
 

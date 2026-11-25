@@ -20,8 +20,9 @@ import json, sys, time, urllib.request
 R, JID, N, P, OUT = sys.argv[1], sys.argv[2], int(sys.argv[3]), int(sys.argv[4]), sys.argv[5]
 def read():
     d = json.load(urllib.request.urlopen(f"{R}/jobs/{JID}", timeout=10))
-    src = [v for v in d["vertices"] if "Source" in v["name"]] or d["vertices"][:1]
-    return d["state"], src[0]["metrics"]["read-records"]
+    v = d["vertices"][0]
+    m = json.load(urllib.request.urlopen(f"{R}/jobs/{JID}/vertices/{v['id']}/subtasks/metrics?get=Source__conns%5B1%5D.numRecordsOut&agg=sum", timeout=10))
+    return d["state"], int(m[0]["sum"]) if m else 0
 samples, t_first, last_change, prev = [], None, time.time(), -1
 while True:
     time.sleep(5)

@@ -54,7 +54,7 @@ switch ($Action) {
       $pairs = @{ "flink-version" = $fver; "flink-sha512" = $fsha; "kafka-connector-version" = $cver; "kafka-connector-sha1" = $csha; "kafka-bootstrap" = $boot; "stream-bucket" = $Bucket; "flink-slots" = "$Slots"; "flink-tm-mem" = $TmMem; "flink-parallelism" = "$Parallelism"; "flink-job-name" = $JobName; "flink-reader" = $Reader }
       $files = @()
       foreach ($k in $pairs.Keys) { $f = Join-Path $mdir $k; [IO.File]::WriteAllText($f, [string]$pairs[$k]); $files += "$k=$f" }
-      $files += "flink-sql=" + (Join-Path $root "streaming\flink\job.sql")
+      $files += "flink-sql=" + (Join-Path $root $SqlFile)
       $files += "startup-script=" + (Join-Path $root "deploy\flink\flink-startup.sh")
       $o = G compute instances create $vm "--project=$Project" "--zone=$Zone" "--machine-type=$MachineType" --provisioning-model=SPOT --instance-termination-action=STOP `
         --image-family=debian-12 --image-project=debian-cloud --boot-disk-size=20GB --boot-disk-type=pd-standard "--service-account=$sa" --scopes=cloud-platform `
@@ -76,7 +76,7 @@ switch ($Action) {
   "refresh" {
     $f = Join-Path ([IO.Path]::GetTempPath()) "sfumato-flink-meta\flink-sql"
     New-Item -ItemType Directory -Force (Split-Path $f) | Out-Null
-    Copy-Item (Join-Path $root "streaming\flink\job.sql") $f -Force
+    Copy-Item (Join-Path $root $SqlFile) $f -Force
     Write-Host (G compute instances add-metadata $vm "--zone=$Zone" "--project=$Project" "--metadata-from-file=flink-sql=$f,startup-script=$(Join-Path $root 'deploy\flink\flink-startup.sh')")
     $st = G compute instances describe $vm "--zone=$Zone" "--project=$Project" "--format=value(status)"
     if ($st -eq "RUNNING") { Write-Host (G compute instances reset $vm "--zone=$Zone" "--project=$Project") } else { Write-Host "$vm is ${st}: the new job runs at the next start" }
