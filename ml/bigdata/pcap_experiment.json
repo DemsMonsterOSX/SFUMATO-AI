@@ -1,0 +1,130 @@
+{
+ "input_connections": 5505493,
+ "windows": 525806,
+ "window_seconds": 60,
+ "features": [
+  "log_n",
+  "log_n_dst",
+  "log_n_dport",
+  "top_port_share",
+  "conn_per_s",
+  "dur_mean",
+  "dur_std",
+  "ob_mean",
+  "ob_std",
+  "rb_mean",
+  "fail_frac",
+  "tcp_frac",
+  "short_frac"
+ ],
+ "benign_cut_ts": 1518629880.0,
+ "windows_by_family": {
+  "benign": 525616,
+  "ftp": 98,
+  "ssh": 92
+ },
+ "noise_note": "benign side includes unlabelled internet scanners; windows with >= 100 connections from non-attacker external hosts: 1912",
+ "experiments": [
+  {
+   "experiment": "seen: train FTP (first half) -> test FTP (second half)",
+   "model": {
+    "attack_windows": 49,
+    "benign_windows": 209808,
+    "tp": 49,
+    "fp": 0,
+    "fn": 0,
+    "tn": 209808,
+    "recall": 1.0,
+    "precision": 1.0,
+    "false_positive_rate": 0.0
+   },
+   "rule_200_conn_per_min": {
+    "attack_windows": 49,
+    "benign_windows": 209808,
+    "tp": 49,
+    "fp": 1429,
+    "fn": 0,
+    "tn": 208379,
+    "recall": 1.0,
+    "precision": 0.0332,
+    "false_positive_rate": 0.00681
+   }
+  },
+  {
+   "experiment": "unseen: train FTP -> test SSH",
+   "model": {
+    "attack_windows": 92,
+    "benign_windows": 209808,
+    "tp": 91,
+    "fp": 0,
+    "fn": 1,
+    "tn": 209808,
+    "recall": 0.9891,
+    "precision": 1.0,
+    "false_positive_rate": 0.0
+   },
+   "rule_200_conn_per_min": {
+    "attack_windows": 92,
+    "benign_windows": 209808,
+    "tp": 92,
+    "fp": 1429,
+    "fn": 0,
+    "tn": 208379,
+    "recall": 1.0,
+    "precision": 0.0605,
+    "false_positive_rate": 0.00681
+   }
+  },
+  {
+   "experiment": "seen: train SSH (first half) -> test SSH (second half)",
+   "model": {
+    "attack_windows": 46,
+    "benign_windows": 209808,
+    "tp": 46,
+    "fp": 0,
+    "fn": 0,
+    "tn": 209808,
+    "recall": 1.0,
+    "precision": 1.0,
+    "false_positive_rate": 0.0
+   },
+   "rule_200_conn_per_min": {
+    "attack_windows": 46,
+    "benign_windows": 209808,
+    "tp": 46,
+    "fp": 1429,
+    "fn": 0,
+    "tn": 208379,
+    "recall": 1.0,
+    "precision": 0.0312,
+    "false_positive_rate": 0.00681
+   }
+  },
+  {
+   "experiment": "unseen: train SSH -> test FTP",
+   "model": {
+    "attack_windows": 98,
+    "benign_windows": 209808,
+    "tp": 98,
+    "fp": 9,
+    "fn": 0,
+    "tn": 209799,
+    "recall": 1.0,
+    "precision": 0.9159,
+    "false_positive_rate": 4e-05
+   },
+   "rule_200_conn_per_min": {
+    "attack_windows": 98,
+    "benign_windows": 209808,
+    "tp": 98,
+    "fp": 1429,
+    "fn": 0,
+    "tn": 208379,
+    "recall": 1.0,
+    "precision": 0.0642,
+    "false_positive_rate": 0.00681
+   }
+  }
+ ],
+ "seconds": 41.3
+}
