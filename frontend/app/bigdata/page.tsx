@@ -15,6 +15,8 @@ type Overview = {
   results_published: boolean;
   advanced: null | Advanced;
   attacks_by_day: null | { rows: { day: string; label: string; flows: number }[] };
+  pcap_volume: null | { total_archive_gb: number; processed_archive_gb: number; processed_days: number; parquet_gb: number;
+    days: { day: string; archive: string; archive_bytes: number; processed: boolean; parquet_bytes: number | null }[] };
   results: null | {
     raw_rows: number; clean_rows: number; dropped_rows: number; total_seconds: number; prep_seconds: number;
     eda: { label_counts: Record<string, number>; per_day: { day: string; flows: number; attacks: number }[]; attacks_by_hour: Record<string, number> };
@@ -107,6 +109,34 @@ export default function BigDataPage() {
         <Stat label="Dropped (quality)" value={r ? n(r.dropped_rows) : "—"} sub="headers, NaN, Infinity, negative durations" accent="#fbbf24" icon={<Layers className="h-4 w-4" />} />
         <Stat label="Spark run" value={r ? `${Math.round(r.total_seconds / 60)} min` : "—"} sub="Dataproc Serverless" accent="#a78bfa" icon={<Cloud className="h-4 w-4" />} />
       </div>
+
+      {data?.pcap_volume && (
+        <Card className="mt-5">
+          <CardHeader title="Raw traffic (PCAP)" subtitle={`${data.pcap_volume.total_archive_gb} GB of compressed archives, ${data.pcap_volume.processed_archive_gb} GB processed (${data.pcap_volume.processed_days} days) into ${data.pcap_volume.parquet_gb} GB of Parquet`} icon={<HardDrive className="h-4 w-4" />} />
+          <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
+            <Stat label="PCAP archives" value={<span className="text-2xl">{data.pcap_volume.total_archive_gb} GB</span>} sub={`${data.pcap_volume.days.length} days on the public bucket`} icon={<HardDrive className="h-4 w-4" />} />
+            <Stat label="Processed" value={<span className="text-2xl">{data.pcap_volume.processed_archive_gb} GB</span>} sub={`${data.pcap_volume.processed_days} days read with Zeek`} accent="#34d399" icon={<Database className="h-4 w-4" />} />
+            <Stat label="Parquet output" value={<span className="text-2xl">{data.pcap_volume.parquet_gb} GB</span>} sub="Zeek connection logs in the bucket" accent="#a78bfa" icon={<Layers className="h-4 w-4" />} />
+            <Stat label="Not processed" value={<span className="text-2xl">{(data.pcap_volume.total_archive_gb - data.pcap_volume.processed_archive_gb).toFixed(1)} GB</span>} sub={`${data.pcap_volume.days.length - data.pcap_volume.processed_days} days left`} accent="#fbbf24" icon={<Cloud className="h-4 w-4" />} />
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="w-full text-left text-xs">
+              <thead className="text-slate-400"><tr>{["Day", "Archive", "Size (GB)", "Parquet (MB)", "State"].map((h) => <th key={h} className="px-2 py-2 font-medium">{h}</th>)}</tr></thead>
+              <tbody>
+                {data.pcap_volume.days.map((d) => (
+                  <tr key={d.day} className="border-t border-line text-slate-200">
+                    <td className="px-2 py-2 font-mono">{d.day}</td><td className="px-2 py-2">{d.archive}</td>
+                    <td className="px-2 py-2 font-mono">{(d.archive_bytes / 1e9).toFixed(1)}</td>
+                    <td className="px-2 py-2 font-mono">{d.parquet_bytes ? Math.round(d.parquet_bytes / 1e6) : "—"}</td>
+                    <td className="px-2 py-2">{d.processed ? "processed" : "not processed"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+          <p className="mt-3 text-[11px] text-slate-500">Sizes are those of the compressed archives (pcap.zip / pcap.rar) read from the public bucket headers on 2026-11-26, not of the extracted capture.</p>
+        </Card>
+      )}
 
       <Card className="mt-5">
         <CardHeader title="Pipeline" subtitle={data ? `${data.dataset.name} · ${data.dataset.source}` : ""} icon={<Layers className="h-4 w-4" />} />

@@ -90,8 +90,14 @@ def open_set() -> dict | None:
 
 
 def pcap() -> dict | None:
-    d = _read(_root() / "bigdata" / "pcap_experiment.json")
-    return d if d else None
+    exp = _read(_root() / "bigdata" / "pcap_experiment.json")
+    vol = _read(_root() / "bigdata" / "pcap_volume.json")
+    if not (exp or vol):
+        return None
+    out: dict[str, Any] = dict(exp or {})
+    if vol:
+        out["volume"] = vol
+    return out
 
 
 def incidents() -> dict | None:
@@ -145,6 +151,13 @@ def describe(ctx: dict) -> str | None:
         if s.get("flink_per_source_by_parallelism"):
             bits.append("Flink par source, parallélisme " + ", ".join(f"{k} : {v['avg_per_s']} enreg./s en moyenne" for k, v in s["flink_per_source_by_parallelism"].items()))
         parts.append("Scalabilité mesurée. " + " ; ".join(bits) + ".")
+    p = (ctx.get("pcap") or {}).get("volume")
+    if p:
+        per_day = ", ".join(f"{d['day']} : {d['archive_bytes'] / 1e9:.1f} Go" + ("" if d.get("processed") else " (non traité)") for d in p["days"])
+        parts.append(
+            f"Trafic brut PCAP (CSE-CIC-IDS2018) : {p['total_archive_gb']} Go d'archives compressées sur {len(p['days'])} jours, dont {p['processed_archive_gb']} Go "
+            f"traités ({p['processed_days']} jours) avec Zeek, réduits à {p['parquet_gb']} Go de journaux de connexions en Parquet. Par jour : {per_day}. "
+            "Tailles des archives pcap.zip/pcap.rar, pas de la capture décompressée ; certains fichiers PCAP n'ont pas pu être lus par Zeek.")
     i = ctx.get("incidents")
     if i is not None:
         parts.append("Aucun incident enregistré." if not i.get("total") else

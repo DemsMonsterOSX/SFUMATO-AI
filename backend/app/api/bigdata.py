@@ -65,6 +65,7 @@ def overview():
         "advanced": _load("advanced.json"),
         "attacks_by_day": _load("attacks_by_day.json"),
         "results_published": results is not None,
+        "pcap_volume": _load("pcap_volume.json"),
     }
 
 
@@ -176,7 +177,8 @@ async def agent(req: AgentRequest):
     if plat:
         extra["platform"] = plat
         text = platform_context.describe(plat)
-        if text and base["matched"] in (None, "pipeline", "limits"):
+        explicit_pcap = "pcap" in plat and "pcap" in qn   # "how many GB of PCAP" must not get the CSV dataset size from the generic volume rule
+        if text and (base["matched"] in (None, "pipeline", "limits") or (explicit_pcap and base["matched"] == "volume")):
             base = {"answer": text, "sources": [f"platform/{t}" for t in plat], "matched": "platform"}
     # project documentation: fallback answer and extra context for the LLM
     doc_hits = [d for d in docs_index.search(question, 3) if d["score"] >= 2.5]

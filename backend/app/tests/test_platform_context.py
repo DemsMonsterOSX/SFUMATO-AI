@@ -36,3 +36,24 @@ def test_describe_incidents_when_empty_and_when_filled():
 
 def test_describe_returns_none_when_only_the_model_can_interpret():
     assert pc.describe({"open_set": {"families": []}}) is None
+
+
+def test_pcap_volume_is_quoted_in_gigabytes():
+    vol = {"total_archive_gb": 477.3, "processed_archive_gb": 326.9, "processed_days": 7, "parquet_gb": 2.15,
+           "days": [{"day": "2018-02-14", "archive_bytes": 39913353098, "processed": True},
+                    {"day": "2018-03-02", "archive_bytes": 44789835888, "processed": False}]}
+    text = pc.describe({"pcap": {"volume": vol}})
+    assert "477.3 Go" in text and "326.9 Go" in text and "2018-02-14 : 39.9 Go" in text and "2018-03-02 : 44.8 Go (non traité)" in text
+
+
+def test_pcap_loader_reads_the_published_volume_file():
+    v = pc.pcap()
+    assert v and v["volume"]["total_archive_gb"] > 400 and v["volume"]["processed_days"] == 7
+
+
+def test_agent_answers_pcap_size_questions_with_the_pcap_volume(client):
+    from app.tests.conftest import HEADERS
+    r = client.post("/api/v1/bigdata/agent", json={"question": "Quels PCAP as-tu traités et combien de Go ?", "use_llm": False}, headers=HEADERS).json()
+    assert r["matched"] == "platform" and "477.3 Go" in r["answer"] and "326.9 Go" in r["answer"]
+    csv = client.post("/api/v1/bigdata/agent", json={"question": "Combien de lignes dans le jeu de données ?", "use_llm": False}, headers=HEADERS).json()
+    assert "477.3" not in csv["answer"]

@@ -1,0 +1,79 @@
+{
+ "_source": "archive sizes: Content-Length of the public files (HEAD request, nothing downloaded) on 2026-11-26; Parquet sizes: gcloud storage du on the bucket the same day. Sizes are of the compressed archives (pcap.zip / pcap.rar), not of the extracted capture.",
+ "days": [
+  {
+   "day": "2018-02-14",
+   "archive": "pcap.zip",
+   "archive_bytes": 39913353098,
+   "processed": true,
+   "parquet_bytes": 280871296
+  },
+  {
+   "day": "2018-02-15",
+   "archive": "pcap.zip",
+   "archive_bytes": 41283382768,
+   "processed": true,
+   "parquet_bytes": 264774177
+  },
+  {
+   "day": "2018-02-16",
+   "archive": "pcap.zip",
+   "archive_bytes": 38535667707,
+   "processed": true,
+   "parquet_bytes": 332861136
+  },
+  {
+   "day": "2018-02-20",
+   "archive": "pcap.rar",
+   "archive_bytes": 44391980380,
+   "processed": true,
+   "parquet_bytes": 312412516
+  },
+  {
+   "day": "2018-02-21",
+   "archive": "pcap.zip",
+   "archive_bytes": 53462820707,
+   "processed": true,
+   "parquet_bytes": 336992367
+  },
+  {
+   "day": "2018-02-22",
+   "archive": "pcap.zip",
+   "archive_bytes": 50240938251,
+   "processed": true,
+   "parquet_bytes": 318744947
+  },
+  {
+   "day": "2018-02-23",
+   "archive": "pcap.zip",
+   "archive_bytes": 59093922810,
+   "processed": true,
+   "parquet_bytes": 305457159
+  },
+  {
+   "day": "2018-02-28",
+   "archive": "pcap.zip",
+   "archive_bytes": 53251694487,
+   "processed": false,
+   "parquet_bytes": null
+  },
+  {
+   "day": "2018-03-01",
+   "archive": "pcap.zip",
+   "archive_bytes": 52358069106,
+   "processed": false,
+   "parquet_bytes": null
+  },
+  {
+   "day": "2018-03-02",
+   "archive": "pcap.zip",
+   "archive_bytes": 44789835888,
+   "processed": false,
+   "parquet_bytes": null
+  }
+ ],
+ "total_archive_gb": 477.3,
+ "processed_archive_gb": 326.9,
+ "processed_days": 7,
+ "parquet_gb": 2.15
+}
