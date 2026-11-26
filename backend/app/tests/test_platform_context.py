@@ -11,7 +11,7 @@ def test_topics_follow_the_question():
 
 def test_describe_lists_every_machine_with_the_designed_layout_when_not_live():
     text = pc.describe({"architecture": {"live": False, "machines": pc.ARCHITECTURE}})
-    assert "sfumato-kafka-1" in text and "sfumato-qwen" in text and "n1-standard-4 + NVIDIA T4" in text and "non lu" in text
+    assert "sfumato-kafka-1" in text and "sfumato-qwen" in text and "g2-standard-4 + NVIDIA L4" in text and "non lu" in text
 
 
 def test_describe_uses_the_real_state_when_live():

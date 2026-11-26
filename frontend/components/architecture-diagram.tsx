@@ -28,7 +28,7 @@ export function buildDiagram(states: Record<string, NodeState>, labels: Labels):
 
   subgraph ai["IA locale et logs"]
     direction LR
-    qwen["<b>sfumato-qwen</b><br/>${L("qwen", "GPU")}<br/><i>Ollama · Qwen</i>"]:::${cls("qwen")}
+    qwen["<b>sfumato-qwen-clone</b><br/>${L("qwen", "GPU")}<br/><i>Ollama · Qwen</i>"]:::${cls("qwen")}
     elk["<b>sfumato-elk</b><br/>${L("elk", "logs")}<br/><i>Elasticsearch · Logstash</i>"]:::${cls("elk")}
     soar["<b>sfumato-soar</b><br/>${L("soar", "SOAR")}<br/><i>Shuffle · webhook</i>"]:::${cls("soar")}
   end

@@ -176,7 +176,8 @@ def candidates(fast: bool, n_classes: int):
                                                 max_samples=0.6),
         "xgboost": XGBClassifier(n_estimators=80 if fast else 300, max_depth=7, learning_rate=0.1, subsample=0.8,
                                  colsample_bytree=0.8, objective="multi:softprob", num_class=n_classes,
-                                 eval_metric="mlogloss", tree_method="hist", random_state=7, n_jobs=4),
+                                 eval_metric="mlogloss", tree_method="hist", random_state=7, n_jobs=4,
+                                 device=os.environ.get("XGB_DEVICE", "cpu")),  # XGB_DEVICE=cuda trains on the GPU
     }
 
 

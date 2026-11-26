@@ -26,8 +26,8 @@ const ROLES: Role[] = [
     contains: ["Kafka 4.1.2 broker and KRaft voter", "Scorer in the shared consumer group"] },
   { key: "flink", name: "sfumato-flink", target: "e2-standard-4", layer: "Streaming", role: "Flink: both jobs on one cluster", script: "scripts/gcp_flink.ps1 -SqlFile2",
     contains: ["Apache Flink 1.20.5, standalone: one JobManager, one TaskManager with 4 slots", "sfumato-flow-analytics: 10-second windows over network-flows, rate rules", "sfumato-source-rules: 60-second windows per source address over conn-events, rule 'concentrated source'", "Results reader that publishes to the bucket for the Live Stream page"] },
-  { key: "qwen", name: "sfumato-qwen", target: "n1-standard-4 + NVIDIA T4", layer: "Support", role: "Da Vinci's local model, on GPU", script: "scripts/gcp_qwen.ps1 -Gpu",
-    contains: ["Ollama 0.40.16 serving the models on the T4 (16 GB)", "qwen2.5:14b-instruct (default), qwen2.5:7b-instruct, qwen3.8:27b (too large for the card: part runs on the CPU)", "NVIDIA driver from the Deep Learning VM image", "No service account: no access to the project's data"] },
+  { key: "qwen", name: "sfumato-qwen-clone", target: "g2-standard-4 + NVIDIA L4 (Spot)", layer: "Support", role: "Da Vinci's local model, on GPU", script: "scripts/gcp_qwen.ps1 -Gpu (created from a disk snapshot of the former T4 VM)",
+    contains: ["Ollama 0.40.16 serving the models on the L4 (24 GB). Spot: Google can reclaim it", "qwen2.5:14b-instruct (default), qwen2.5:7b-instruct, qwen3.8:27b (17 GB, not benchmarked on the L4)", "NVIDIA driver from the Deep Learning VM image", "No service account: no access to the project's data"] },
   { key: "elk", name: "sfumato-elk", target: "e2-standard-2", layer: "Support", role: "Logs", script: "scripts/gcp_elk.ps1",
     contains: ["Elasticsearch (2 GB heap): indexes the application and audit logs", "Logstash: receives the logs of the API and the streaming applications", "No Kibana: the Logs tab of this site replaces it"] },
   { key: "soar", name: "sfumato-soar", target: "e2-standard-4", layer: "Support", role: "External open-source SOAR (Shuffle)", script: "scripts/gcp_soar.ps1, scripts/shuffle_setup.py",
@@ -80,7 +80,7 @@ export default function ArchitecturePage() {
     ROLES.forEach((r) => {
       const v = byName.get(r.name);
       states[r.key] = !live ? "unknown" : !v ? "stopped" : v.status === "RUNNING" ? "running" : "stopped";
-      labels[r.key] = v ? `${v.machine_type}${v.gpu.length ? " + T4" : ""} · ${v.vcpus ?? "?"} vCPU` : r.target;
+      labels[r.key] = v ? `${v.machine_type}${v.gpu.length ? " + GPU" : ""} · ${v.vcpus ?? "?"} vCPU` : r.target;
     });
     return { definition: buildDiagram(states, labels) };
   }, [byName, live]);
@@ -100,7 +100,7 @@ export default function ArchitecturePage() {
       <div className="mb-5 grid gap-3 md:grid-cols-4">
         <Stat label="Machines running" value={live ? `${data?.running_count} / ${ROLES.length}` : `${ROLES.length}`} sub={live ? "of the designed layout" : "designed layout"} icon={<Server className="h-4 w-4" />} />
         <Stat label="vCPU running" value={live && cpu ? `${data?.running_vcpus} / ${cpu.limit}` : "n/a"} sub="project quota, all regions" icon={<Cpu className="h-4 w-4" />} />
-        <Stat label="GPU" value={live && gpuq ? `${gpuq.usage} / ${gpuq.limit}` : "1 T4"} sub="NVIDIA T4 for the local model" icon={<Cloud className="h-4 w-4" />} />
+        <Stat label="GPU" value={live && gpuq ? `${gpuq.usage} / ${gpuq.limit}` : "1 GPU"} sub="NVIDIA L4 for the local model" icon={<Cloud className="h-4 w-4" />} />
         <Stat label="External addresses" value={live && ips ? `${ips.usage} / ${ips.limit}` : "n/a"} sub="us-central1" />
       </div>
 
@@ -121,7 +121,7 @@ export default function ArchitecturePage() {
                   <dt className="text-slate-500">Machine type</dt><dd className="text-slate-200">{lv ? lv.machine_type : role.target}{!lv && " (target)"}</dd>
                   <dt className="text-slate-500">vCPU</dt><dd className="text-slate-200">{lv?.vcpus ?? "n/a"}</dd>
                   <dt className="text-slate-500">Memory (type)</dt><dd className="text-slate-200">{lv && ramGb(lv.machine_type) ? `${ramGb(lv.machine_type)} GB` : "n/a"}</dd>
-                  <dt className="text-slate-500">GPU</dt><dd className="text-slate-200">{lv?.gpu.length ? lv.gpu.join(", ") : role.key === "qwen" ? "1x NVIDIA T4 (target)" : "none"}</dd>
+                  <dt className="text-slate-500">GPU</dt><dd className="text-slate-200">{lv?.gpu.length ? lv.gpu.join(", ") : role.key === "qwen" ? "1x NVIDIA L4 (target)" : "none"}</dd>
                   <dt className="text-slate-500">Boot disk</dt><dd className="text-slate-200">{lv ? `${lv.disks_gb} GB` : "n/a"}</dd>
                   <dt className="text-slate-500">Zone</dt><dd className="text-slate-200">{lv?.zone ?? "n/a"}</dd>
                   <dt className="text-slate-500">Provisioning</dt><dd className="text-slate-200">{lv ? lv.provisioning.toLowerCase() : "n/a"}</dd>
@@ -174,7 +174,7 @@ export default function ArchitecturePage() {
                       <tr key={r.key} onClick={() => setSelected(r.key)} className="cursor-pointer border-t border-slate-700/30 align-top hover:bg-ink-800/40">
                         <td className="py-2 pr-3 font-mono text-xs text-slate-100">{r.name}</td>
                         <td className="py-2 pr-3 text-slate-300">{live ? (v ? <span className="flex items-center gap-2"><Dot {...stateColor(v.status)} />{v.status.toLowerCase()}</span> : <span className="text-slate-500">not created</span>) : <span className="text-slate-500">unknown</span>}</td>
-                        <td className="py-2 pr-3 text-slate-300">{v ? <>{v.machine_type}{v.gpu.length ? " + T4" : ""}<div className="text-xs text-slate-500">{v.provisioning.toLowerCase()} · {v.vcpus ?? "?"} vCPU</div>{drift && <div className="text-xs text-amber-300">target: {r.target}</div>}</> : <>{r.target}<div className="text-xs text-slate-500">target</div></>}</td>
+                        <td className="py-2 pr-3 text-slate-300">{v ? <>{v.machine_type}{v.gpu.length ? " + GPU" : ""}<div className="text-xs text-slate-500">{v.provisioning.toLowerCase()} · {v.vcpus ?? "?"} vCPU</div>{drift && <div className="text-xs text-amber-300">target: {r.target}</div>}</> : <>{r.target}<div className="text-xs text-slate-500">target</div></>}</td>
                         <td className="py-2 pr-3 text-slate-200">{r.role}</td>
                         <td className="py-2 font-mono text-xs text-slate-400">{r.script}</td>
                       </tr>

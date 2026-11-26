@@ -26,7 +26,7 @@ ARCHITECTURE = [
     {"name": "sfumato-kafka-2", "target": "e2-standard-2", "role": "Kafka broker 2: scorer and CVE consumer"},
     {"name": "sfumato-kafka-3", "target": "e2-standard-2", "role": "Kafka broker 3: scorer"},
     {"name": "sfumato-flink", "target": "e2-standard-4", "role": "Flink with both jobs: flow analytics over network-flows and the per-source rule over conn-events"},
-    {"name": "sfumato-qwen", "target": "n1-standard-4 + NVIDIA T4", "role": "Ollama with Qwen on the GPU, used by Da Vinci"},
+    {"name": "sfumato-qwen-clone", "target": "g2-standard-4 + NVIDIA L4 (Spot)", "role": "Ollama with Qwen on the L4 GPU (24 GB), used by Da Vinci; replaced the T4 VM when no T4 was available"},
     {"name": "sfumato-elk", "target": "e2-standard-2", "role": "Elasticsearch and Logstash for the logs (no Kibana)"},
     {"name": "sfumato-soar", "target": "e2-standard-4", "role": "external open-source SOAR (Shuffle): receives the investigation summary by webhook from the back end"},
     {"name": "sfumato-lg", "target": "e2-standard-8", "role": "worker: load generator for the stress tests and raw PCAP processing on demand"},
