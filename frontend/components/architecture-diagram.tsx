@@ -30,6 +30,7 @@ export function buildDiagram(states: Record<string, NodeState>, labels: Labels):
     direction LR
     qwen["<b>sfumato-qwen</b><br/>${L("qwen", "GPU")}<br/><i>Ollama · Qwen</i>"]:::${cls("qwen")}
     elk["<b>sfumato-elk</b><br/>${L("elk", "logs")}<br/><i>Elasticsearch · Logstash</i>"]:::${cls("elk")}
+    soar["<b>sfumato-soar</b><br/>${L("soar", "SOAR")}<br/><i>Shuffle · webhook</i>"]:::${cls("soar")}
   end
 
   subgraph work["Traitement"]
@@ -49,6 +50,7 @@ export function buildDiagram(states: Record<string, NodeState>, labels: Labels):
   ds -->|copie| bucket
   dash -->|questions Da Vinci| qwen
   dash -->|logs| elk
+  dash -->|webhook fin d'enquête| soar
   dash -->|test de charge| k1
   dash -->|résultats, modèles| bucket
   cve -.->|toutes les 12 h| dash

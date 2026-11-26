@@ -26,7 +26,7 @@ from app.ml.inference import model_service
 from app.models import CTIQuery, Incident, TaskRun
 from app.schemas.evidence import ExtractedIndicator
 from app.schemas.incident import IncidentIn
-from app.services import behavior, events, ioc, mitre
+from app.services import behavior, events, ioc, mitre, shuffle
 from app.services.evidence import EvidenceBook
 from app.services.recommendations import recommend
 from app.soar.engine import Playbook, PlaybookEngine
@@ -432,6 +432,8 @@ async def publish_results(ctx: InvestigationContext, log) -> dict:
         inc.duration_ms = int((now - started).total_seconds() * 1000)
         duration = inc.duration_ms
     log(f"Investigation {status} in {duration} ms")
+    if shuffle.notify(ctx.incident_id, status, ctx.decision, duration):
+        log("External SOAR (Shuffle) notified")
     events.emit(ctx.incident_pk, "incident", f"Investigation {status.replace('_', ' ')}", status=status,
                 data={"verdict": ctx.decision["verdict"], "threat_score": ctx.decision["threat_score"],
                       "duration_ms": duration})

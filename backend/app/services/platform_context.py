@@ -28,6 +28,7 @@ ARCHITECTURE = [
     {"name": "sfumato-flink", "target": "e2-standard-4", "role": "Flink with both jobs: flow analytics over network-flows and the per-source rule over conn-events"},
     {"name": "sfumato-qwen", "target": "n1-standard-4 + NVIDIA T4", "role": "Ollama with Qwen on the GPU, used by Da Vinci"},
     {"name": "sfumato-elk", "target": "e2-standard-2", "role": "Elasticsearch and Logstash for the logs (no Kibana)"},
+    {"name": "sfumato-soar", "target": "e2-standard-4", "role": "external open-source SOAR (Shuffle): receives the investigation summary by webhook from the back end"},
     {"name": "sfumato-lg", "target": "e2-standard-8", "role": "worker: load generator for the stress tests and raw PCAP processing on demand"},
     {"name": "managed services", "target": "Cloud Storage, Dataproc Serverless (Spark), BigQuery, Cloud Run job + Scheduler", "role": "dataset and Parquet, batch jobs, SQL analytics, CVE feed every 12 hours"},
 ]
