@@ -1,0 +1,86 @@
+{
+ "label": "c4n1_scorers=1",
+ "steps": [
+  {
+   "label": "c4n1_scorers=1",
+   "target": 2400,
+   "producers": 1,
+   "produced_per_s": 2392,
+   "consumed_per_s": 2379,
+   "lag_end": 380,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "c4n1_scorers=1",
+   "target": 4800,
+   "producers": 2,
+   "produced_per_s": 4783,
+   "consumed_per_s": 4774,
+   "lag_end": 260,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "c4n1_scorers=1",
+   "target": 9600,
+   "producers": 4,
+   "produced_per_s": 9567,
+   "consumed_per_s": 9566,
+   "lag_end": 20,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "c4n1_scorers=1",
+   "target": 14400,
+   "producers": 6,
+   "produced_per_s": 14353,
+   "consumed_per_s": 14344,
+   "lag_end": 300,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "c4n1_scorers=1",
+   "target": 19200,
+   "producers": 8,
+   "produced_per_s": 19133,
+   "consumed_per_s": 19132,
+   "lag_end": 40,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "c4n1_scorers=1",
+   "target": 24000,
+   "producers": 8,
+   "produced_per_s": 23906,
+   "consumed_per_s": 23896,
+   "lag_end": 340,
+   "errors": 0,
+   "kept_up": true,
+   "producer_limited": false
+  },
+  {
+   "label": "c4n1_scorers=1",
+   "target": 30000,
+   "producers": 8,
+   "produced_per_s": 29812,
+   "consumed_per_s": 25151,
+   "lag_end": 140104,
+   "errors": 0,
+   "kept_up": false,
+   "producer_limited": false
+  }
+ ],
+ "max_kept_up_per_s": 23896,
+ "ceiling": "scorers fell behind",
+ "step_seconds": 30,
+ "measured_at": "2026-11-26T16:17:02"
+}

@@ -16,6 +16,10 @@ ID=$(attr kafka-node-id); CID=$(attr kafka-cluster-id); VOTERS=$(attr kafka-vote
 VER=$(attr kafka-version); SHA=$(attr kafka-sha512); HEAP=$(attr kafka-heap)
 [ -n "$ID" ] && [ -n "$CID" ] && [ -n "$VOTERS" ] && [ -n "$VER" ] && [ -n "$SHA" ] || fail "missing metadata"
 HEAP=${HEAP:-700m}
+# layout: 3 E2 broker+controller nodes by default; the 2-broker layout (C4 broker+controller, N1 broker, optional broker-only nodes 3 and 4) sets these keys
+ROLES=$(attr kafka-roles); ROLES=${ROLES:-broker,controller}
+RF=$(attr kafka-rf); RF=${RF:-3}; MINISR=$(attr kafka-min-isr); MINISR=${MINISR:-2}; NBROK=$(attr kafka-brokers); NBROK=${NBROK:-3}
+if echo ",$ROLES," | grep -q ",controller,"; then LISTENERS="PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093"; else LISTENERS="PLAINTEXT://0.0.0.0:9092"; fi
 FQDN=$(hostname -f)
 
 # swap: the e2-small has 2 GB of RAM
@@ -49,21 +53,21 @@ mkdir -p /var/lib/kafka-logs /etc/kafka /var/lib/kafka /var/log/kafka
 chown -R kafka:kafka /var/lib/kafka-logs /var/lib/kafka /var/log/kafka
 
 cat > /etc/kafka/server.properties <<CFG
-process.roles=broker,controller
+process.roles=$ROLES
 node.id=$ID
 controller.quorum.voters=$VOTERS
-listeners=PLAINTEXT://0.0.0.0:9092,CONTROLLER://0.0.0.0:9093
+listeners=$LISTENERS
 advertised.listeners=PLAINTEXT://$FQDN:9092
 controller.listener.names=CONTROLLER
 inter.broker.listener.name=PLAINTEXT
 listener.security.protocol.map=CONTROLLER:PLAINTEXT,PLAINTEXT:PLAINTEXT
 log.dirs=/var/lib/kafka-logs
 num.partitions=3
-default.replication.factor=3
-min.insync.replicas=2
-offsets.topic.replication.factor=3
-transaction.state.log.replication.factor=3
-transaction.state.log.min.isr=2
+default.replication.factor=$RF
+min.insync.replicas=$MINISR
+offsets.topic.replication.factor=$RF
+transaction.state.log.replication.factor=$RF
+transaction.state.log.min.isr=$MINISR
 auto.create.topics.enable=false
 log.retention.hours=24
 log.retention.bytes=536870912
@@ -108,10 +112,10 @@ if [ "$ID" = "1" ]; then
   B=localhost:9092
   for i in $(seq 1 40); do
     n=$(/opt/kafka/bin/kafka-broker-api-versions.sh --bootstrap-server $B 2>/dev/null | grep -c 'id: ')
-    [ "$n" -ge 3 ] && break
+    [ "$n" -ge "$NBROK" ] && break
     sleep 10
   done
-  mk() { /opt/kafka/bin/kafka-topics.sh --bootstrap-server $B --create --if-not-exists --topic "$1" --partitions "$2" --replication-factor 3 --config min.insync.replicas=2 --config retention.ms="$3"; }
+  mk() { /opt/kafka/bin/kafka-topics.sh --bootstrap-server $B --create --if-not-exists --topic "$1" --partitions "$2" --replication-factor $RF --config min.insync.replicas=$MINISR --config retention.ms="$3"; }
   mk network-flows 6 86400000
   mk network-flows-dlq 1 604800000
   mk alerts 3 86400000
@@ -131,7 +135,7 @@ cat > /usr/local/bin/sfumato-stream-sync.sh <<'EOS'
 set -uo pipefail
 MD=http://metadata.google.internal/computeMetadata/v1
 attr() { curl -fsS -H 'Metadata-Flavor: Google' "$MD/instance/attributes/$1" 2>/dev/null || true; }
-BUCKET=$(attr stream-bucket); ROLES=$(attr stream-roles); ENVV=$(attr stream-env); VOTERS=$(attr kafka-voters)
+BUCKET=$(attr stream-bucket); ROLES=$(attr stream-roles); ENVV=$(attr stream-env); VOTERS=$(attr kafka-voters); BOOTMD=$(attr kafka-bootstrap)
 [ -n "$BUCKET" ] || exit 0
 TOKEN=$(curl -fsS -H 'Metadata-Flavor: Google' "$MD/instance/service-accounts/default/token" | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])') || exit 0
 get() { # object dest
@@ -140,7 +144,7 @@ get() { # object dest
 }
 APP=/opt/sfumato-stream; mkdir -p $APP
 id sfstream >/dev/null 2>&1 || useradd --system --home $APP --shell /usr/sbin/nologin sfstream
-BOOT=$(echo "$VOTERS" | tr ',' '\n' | sed -E 's/^[0-9]+@//; s/:9093$/:9092/' | paste -sd, -)
+BOOT=${BOOTMD:-$(echo "$VOTERS" | tr ',' '\n' | sed -E 's/^[0-9]+@//; s/:9093$/:9092/' | paste -sd, -)}
 NEWENV=$(printf 'BOOTSTRAP=%s\nBUCKET=%s\n%s\n' "$BOOT" "$BUCKET" "$ENVV")
 CHANGED=0
 if [ "$NEWENV" != "$(cat /etc/sfumato-stream.env 2>/dev/null)" ]; then echo "$NEWENV" > /etc/sfumato-stream.env; chmod 640 /etc/sfumato-stream.env; chgrp sfstream /etc/sfumato-stream.env; CHANGED=1; fi

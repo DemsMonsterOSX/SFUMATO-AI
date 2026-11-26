@@ -23,7 +23,7 @@ cat > /usr/local/bin/sfumato-stream-sync.sh <<'EOS'
 set -uo pipefail
 MD=http://metadata.google.internal/computeMetadata/v1
 attr() { curl -fsS -H 'Metadata-Flavor: Google' "$MD/instance/attributes/$1" 2>/dev/null || true; }
-BUCKET=$(attr stream-bucket); ROLES=$(attr stream-roles); ENVV=$(attr stream-env); VOTERS=$(attr kafka-voters)
+BUCKET=$(attr stream-bucket); ROLES=$(attr stream-roles); ENVV=$(attr stream-env); VOTERS=$(attr kafka-voters); BOOTMD=$(attr kafka-bootstrap)
 [ -n "$BUCKET" ] || exit 0
 TOKEN=$(curl -fsS -H 'Metadata-Flavor: Google' "$MD/instance/service-accounts/default/token" | python3 -c 'import sys,json;print(json.load(sys.stdin)["access_token"])') || exit 0
 get() { # object dest
@@ -32,7 +32,7 @@ get() { # object dest
 }
 APP=/opt/sfumato-stream; mkdir -p $APP
 id sfstream >/dev/null 2>&1 || useradd --system --home $APP --shell /usr/sbin/nologin sfstream
-BOOT=$(echo "$VOTERS" | tr ',' '\n' | sed -E 's/^[0-9]+@//; s/:9093$/:9092/' | paste -sd, -)
+BOOT=${BOOTMD:-$(echo "$VOTERS" | tr ',' '\n' | sed -E 's/^[0-9]+@//; s/:9093$/:9092/' | paste -sd, -)}
 NEWENV=$(printf 'BOOTSTRAP=%s\nBUCKET=%s\n%s\n' "$BOOT" "$BUCKET" "$ENVV")
 CHANGED=0
 if [ "$NEWENV" != "$(cat /etc/sfumato-stream.env 2>/dev/null)" ]; then echo "$NEWENV" > /etc/sfumato-stream.env; chmod 640 /etc/sfumato-stream.env; chgrp sfstream /etc/sfumato-stream.env; CHANGED=1; fi

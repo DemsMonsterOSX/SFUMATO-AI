@@ -40,7 +40,7 @@ $fsha = "c846ecbcc4a1705724832acdbad27538c31f17aa494e8b69ff5f92d724574be83d1dff0
 $cver = "3.4.0-1.20"
 # SHA-1 published by Maven Central next to flink-sql-connector-kafka-3.4.0-1.20.jar
 $csha = "266330f8f26fec4957339b5ff31aa67b81c31462"
-$boot = (1..3 | ForEach-Object { "sfumato-kafka-$_.$Zone.c.$Project.internal:9092" }) -join ","
+$boot = (1..2 | ForEach-Object { "sfumato-kafka-$_.$Zone.c.$Project.internal:9092" }) -join ","   # the two brokers of the C4 + N1 layout (extra brokers 3 and 4 are discovered from these two)
 function G { $o = & $g @args 2>&1 | ForEach-Object { "$_" } | Out-String; $script:rc = $LASTEXITCODE; return $o.Trim() }
 function Serial { return (G compute instances get-serial-port-output $vm "--zone=$Zone" "--project=$Project") }
 

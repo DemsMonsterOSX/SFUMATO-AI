@@ -48,6 +48,8 @@ switch ($Action) {
     if (-not $voters) { Write-Host "cannot read kafka-voters from sfumato-kafka-1" -ForegroundColor Red; exit 1 }
     $mdir = Join-Path ([IO.Path]::GetTempPath()) "sfumato-scale-meta"; New-Item -ItemType Directory -Force $mdir | Out-Null
     [IO.File]::WriteAllText((Join-Path $mdir "kafka-voters"), $voters)
+    $bootstrap = G compute instances describe sfumato-kafka-1 "--zone=$Zone" "--project=$Project" "--format=value(metadata.items.kafka-bootstrap)"
+    [IO.File]::WriteAllText((Join-Path $mdir "kafka-bootstrap"), $bootstrap)
     [IO.File]::WriteAllText((Join-Path $mdir "stream-bucket"), $Bucket)
     [IO.File]::WriteAllText((Join-Path $mdir "stream-roles"), "")
     [IO.File]::WriteAllText((Join-Path $mdir "stream-env"), "SCENARIO=known`nRATE=300`nTHRESHOLD=0.5")
@@ -56,7 +58,7 @@ switch ($Action) {
       if ($rc -eq 0) { Write-Host "$n exists"; continue }
       $o = G compute instances create $n "--project=$Project" "--zone=$Zone" "--machine-type=$MachineType" --provisioning-model=SPOT --instance-termination-action=STOP `
         --image-family=debian-12 --image-project=debian-cloud --boot-disk-size=20GB --boot-disk-type=pd-standard "--service-account=$sa" --scopes=cloud-platform `
-        "--metadata-from-file=startup-script=$(Join-Path $root 'deploy\stream\scorer-startup.sh'),kafka-voters=$(Join-Path $mdir 'kafka-voters'),stream-bucket=$(Join-Path $mdir 'stream-bucket'),stream-roles=$(Join-Path $mdir 'stream-roles'),stream-env=$(Join-Path $mdir 'stream-env')"
+        "--metadata-from-file=startup-script=$(Join-Path $root 'deploy\stream\scorer-startup.sh'),kafka-voters=$(Join-Path $mdir 'kafka-voters'),kafka-bootstrap=$(Join-Path $mdir 'kafka-bootstrap'),stream-bucket=$(Join-Path $mdir 'stream-bucket'),stream-roles=$(Join-Path $mdir 'stream-roles'),stream-env=$(Join-Path $mdir 'stream-env')"
       if ($rc -ne 0) { Write-Host "creation of $n failed: $o" -ForegroundColor Red; exit 1 } else { Write-Host "$n created" }
     }
     Write-Host "Installing the application on the workers (first boot: packages, then the sync timer installs Python dependencies)" -ForegroundColor Cyan

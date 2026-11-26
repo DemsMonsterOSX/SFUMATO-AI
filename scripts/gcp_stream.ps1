@@ -14,11 +14,15 @@
    .\scripts\gcp_stream.ps1 teardown   delete the VMs and their disks (type DELETE)
 #>
 param(
-  [ValidateSet("up", "refresh", "deploy-app", "run", "halt", "status", "stop", "start", "teardown")][string]$Action = "status",
+  [ValidateSet("up", "refresh", "deploy-app", "run", "halt", "status", "stop", "start", "teardown", "add-brokers", "drop-brokers")][string]$Action = "status",
   [string]$Project = "gen-lang-client-0426716352",
   [string]$Zone = "us-central1-a",
   [string]$Bucket = "sfumato-soc-4ab8ab-artifacts",
-  [string]$MachineType = "e2-small",
+  [string]$MachineType = "e2-small",   # layout e2x3 only
+  [ValidateSet("c4n1","e2x3")][string]$Layout = "c4n1",   # c4n1: 1 C4 broker+controller and 1 N1 broker (replication 2); e2x3: the first 3-node E2 cluster
+  [string]$PrimaryType = "c4-standard-8",
+  [string]$BackupType = "n1-standard-4",
+  [string]$ExtraType = "c4-standard-8",   # add-brokers: the on-demand brokers 3 and 4
   [ValidateSet("known", "unseen")][string]$Scenario = "known",
   [int]$Rate = 300,
   [switch]$Yes
@@ -29,7 +33,6 @@ if (-not (Get-Command gcloud.cmd -ErrorAction SilentlyContinue)) {
   $p = Join-Path $env:LOCALAPPDATA "Google\Cloud SDK\google-cloud-sdk\bin"; if (Test-Path $p) { $env:Path += ";$p" } else { Write-Host "gcloud not found" -ForegroundColor Red; exit 1 }
 }
 $g = (Get-Command gcloud.cmd).Source
-$names = 1..3 | ForEach-Object { "sfumato-kafka-$_" }
 $sa = "sfumato-stream@$Project.iam.gserviceaccount.com"
 $kver = "4.1.2"
 # SHA-512 published by Apache next to the archive (https://downloads.apache.org/kafka/4.1.2/kafka_2.13-4.1.2.tgz.sha512)
@@ -39,10 +42,56 @@ $clusterFile = Join-Path $root "secrets\kafka-cluster-id.txt"
 function Step($m) { Write-Host "`n== $m" -ForegroundColor Cyan }
 function G { $o = & $g @args 2>&1 | ForEach-Object { "$_" } | Out-String; $script:rc = $LASTEXITCODE; return $o.Trim() }
 function Confirm-Cost($msg) { Write-Host $msg -ForegroundColor Yellow; if (-not $Yes) { $a = Read-Host "Proceed? (y/N)"; if ($a -notmatch '^[yY]') { Write-Host "Cancelled."; exit 1 } } }
+function Get-Names {   # the broker VMs that exist (2 in the c4n1 layout, up to 4 with add-brokers, 3 in e2x3)
+  $l = (G compute instances list "--project=$Project" "--filter=name~^sfumato-kafka-[0-9]+$" "--format=value(name)") -split "\s+" | Where-Object { $_ -match "^sfumato-kafka-\d+$" } | Sort-Object
+  if ($l) { return @($l) } else { return @(1..3 | ForEach-Object { "sfumato-kafka-$_" }) }
+}
+$names = Get-Names
 function Serial($n) { return (G compute instances get-serial-port-output $n "--zone=$Zone" "--project=$Project") }
 
 switch ($Action) {
   "up" {
+    if ($Layout -eq "c4n1") {
+      Confirm-Cost "Creates 2 standard (not Spot) VMs: sfumato-kafka-1 ($PrimaryType, broker + controller, Hyperdisk 50 GB) and sfumato-kafka-2 ($BackupType, broker only, 50 GB balanced disk). Replication factor 2, min in-sync replicas 1. Cost not measured: read Billing, and stop them when you are done."
+      if ((G compute instances list "--project=$Project" "--filter=name~^sfumato-kafka-[0-9]+$" "--format=value(name,machineType.basename())") -match "e2-") { Write-Host "E2 brokers still exist: stop the streaming apps and delete them first (gcp_stream.ps1 teardown), the names are reused." -ForegroundColor Red; exit 1 }
+      Step "Service account and cluster id"
+      $null = G iam service-accounts describe $sa "--project=$Project"
+      if ($rc -ne 0) { $o = G iam service-accounts create sfumato-stream "--project=$Project" "--display-name=sfumato-stream"; if ($rc -ne 0) { Write-Host $o -ForegroundColor Red; exit 1 } }
+      $null = G storage buckets add-iam-policy-binding "gs://$Bucket" "--member=serviceAccount:$sa" --role=roles/storage.objectUser "--project=$Project"
+      $cid = python -c "import uuid,base64;print(base64.urlsafe_b64encode(uuid.uuid4().bytes).decode().rstrip('='))"   # a new cluster: the E2 cluster id is not reused
+      New-Item -ItemType Directory -Force (Split-Path $clusterFile) | Out-Null
+      Set-Content -Path $clusterFile -Value $cid -Encoding ASCII
+      $voters = "1@sfumato-kafka-1.$Zone.c.$Project.internal:9093"   # one controller: the C4
+      $bootstrap = (1..2 | ForEach-Object { "sfumato-kafka-$_.$Zone.c.$Project.internal:9092" }) -join ","
+      $startup = Join-Path $root "deploy\stream\kafka-startup.sh"
+      Step "VMs"
+      $plan = @(@{ id = 1; type = $PrimaryType; disk = "hyperdisk-balanced"; roles = "broker,controller" }, @{ id = 2; type = $BackupType; disk = "pd-balanced"; roles = "broker" })
+      foreach ($pl in $plan) {
+        $n = "sfumato-kafka-$($pl.id)"
+        $mdir = Join-Path ([IO.Path]::GetTempPath()) "sfumato-kafka-meta-$($pl.id)"
+        New-Item -ItemType Directory -Force $mdir | Out-Null
+        $pairs = @{ "kafka-node-id" = "$($pl.id)"; "kafka-cluster-id" = $cid; "kafka-voters" = $voters; "kafka-bootstrap" = $bootstrap; "kafka-version" = $kver; "kafka-sha512" = $ksha
+                    "kafka-heap" = "4g"; "kafka-roles" = $pl.roles; "kafka-rf" = "2"; "kafka-min-isr" = "1"; "kafka-brokers" = "2"; "stream-bucket" = $Bucket }
+        $files = @(); foreach ($k in $pairs.Keys) { $f = Join-Path $mdir $k; [IO.File]::WriteAllText($f, [string]$pairs[$k]); $files += "$k=$f" }
+        $files += "startup-script=$startup"
+        $o = G compute instances create $n "--project=$Project" "--zone=$Zone" "--machine-type=$($pl.type)" `
+          --image-family=debian-12 --image-project=debian-cloud --boot-disk-size=50GB "--boot-disk-type=$($pl.disk)" "--service-account=$sa" --scopes=cloud-platform `
+          --tags=sfumato-kafka ("--metadata-from-file=" + ($files -join ","))
+        if ($rc -ne 0) { Write-Host "creation of $n failed: $o" -ForegroundColor Red; exit 1 } else { Write-Host "$n created ($($pl.type))" }
+      }
+      Step "Waiting for the brokers and the topics (first boot: apt + Kafka download)"
+      $deadline = (Get-Date).AddMinutes(25); $ok = $false
+      while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 20
+        $sr = Serial "sfumato-kafka-1"
+        if ($sr -match "KAFKA_FAILED: [^\r\n]*") { Write-Host $Matches[0] -ForegroundColor Red; exit 1 }
+        if ($sr -match "TOPICS_READY brokers=(\d)") { $ok = $true; break }
+        Write-Host -NoNewline "."
+      }
+      if (-not $ok) { Write-Host "`nNot ready after 25 minutes: .\scripts\gcp_stream.ps1 status"; exit 1 }
+      Write-Host "`nKafka cluster ready: sfumato-kafka-1 ($PrimaryType) and sfumato-kafka-2 ($BackupType), replication 2" -ForegroundColor Green
+      break
+    }
     Confirm-Cost "Creates 3 Spot $MachineType VMs ($($names -join ', ')) with a 20 GB standard disk each, plus the service account sfumato-stream (objectUser on the bucket). Roughly 0.02-0.03 USD per hour for the three while running (estimate, verify in the pricing calculator). Stop them when you are done."
     Step "Service account"
     $null = G iam service-accounts describe $sa "--project=$Project"
@@ -86,6 +135,48 @@ switch ($Action) {
     if (-not $ok) { Write-Host "`nNot ready after 25 minutes: .\scripts\gcp_stream.ps1 status"; exit 1 }
     Write-Host "`n`nKafka cluster ready: brokers on $($names -join ', ') (internal DNS, port 9092)" -ForegroundColor Green
   }
+  { $_ -in "add-brokers", "drop-brokers" } {
+    $rebal = Join-Path $root "deploy\stream\rebalance.sh"
+    function Rebalance($list) {
+      $null = & $g compute scp $rebal "sfumato-kafka-1:/tmp/rebalance.sh" "--zone=$Zone" "--project=$Project" --strict-host-key-checking=no 2>&1
+      $o = "n`n" | & $g compute ssh sfumato-kafka-1 "--zone=$Zone" "--project=$Project" --strict-host-key-checking=no "--command=sed -i 's/\r$//' /tmp/rebalance.sh; sudo bash /tmp/rebalance.sh $list" 2>&1 | Out-String
+      return $o
+    }
+    if ($Action -eq "add-brokers") {
+      Confirm-Cost "Creates or starts the on-demand brokers sfumato-kafka-3 and sfumato-kafka-4 ($ExtraType, broker only, standard provisioning) and spreads the partitions over the 4 brokers. Cost not measured: stop them with drop-brokers when the test is over."
+      $cid = (Get-Content $clusterFile -Raw).Trim()
+      $voters = G compute instances describe sfumato-kafka-1 "--zone=$Zone" "--project=$Project" "--format=value(metadata.items.kafka-voters)"
+      $bootstrap = G compute instances describe sfumato-kafka-1 "--zone=$Zone" "--project=$Project" "--format=value(metadata.items.kafka-bootstrap)"
+      $senv = G compute instances describe sfumato-kafka-2 "--zone=$Zone" "--project=$Project" "--format=value(metadata.items.stream-env)"
+      $senv = (($senv -split '\r?\n|\\n') | Where-Object { $_ -and $_ -notmatch "^(CONTROL_TOKEN|AUTOSCALE|LOGSTASH_TOKEN)=" }) -join "`n"
+      foreach ($i in 3, 4) {
+        $n = "sfumato-kafka-$i"
+        $st = G compute instances describe $n "--zone=$Zone" "--project=$Project" "--format=value(status)"
+        if ($rc -eq 0) { if ($st -ne "RUNNING") { Write-Host (G compute instances start $n "--zone=$Zone" "--project=$Project") } else { Write-Host "$n already running" }; continue }
+        $mdir = Join-Path ([IO.Path]::GetTempPath()) "sfumato-kafka-meta-$i"; New-Item -ItemType Directory -Force $mdir | Out-Null
+        $pairs = @{ "kafka-node-id" = "$i"; "kafka-cluster-id" = $cid; "kafka-voters" = $voters; "kafka-bootstrap" = $bootstrap; "kafka-version" = $kver; "kafka-sha512" = $ksha
+                    "kafka-heap" = "4g"; "kafka-roles" = "broker"; "kafka-rf" = "2"; "kafka-min-isr" = "1"; "kafka-brokers" = "2"; "stream-bucket" = $Bucket; "stream-roles" = "scorer"; "stream-env" = $senv }
+        $files = @(); foreach ($k in $pairs.Keys) { $f = Join-Path $mdir $k; [IO.File]::WriteAllText($f, [string]$pairs[$k]); $files += "$k=$f" }
+        $files += "startup-script=" + (Join-Path $root "deploy\stream\kafka-startup.sh")
+        $o = G compute instances create $n "--project=$Project" "--zone=$Zone" "--machine-type=$ExtraType" --image-family=debian-12 --image-project=debian-cloud --boot-disk-size=50GB "--boot-disk-type=hyperdisk-balanced" "--service-account=$sa" --scopes=cloud-platform --tags=sfumato-kafka ("--metadata-from-file=" + ($files -join ","))
+        if ($rc -ne 0) { Write-Host "creation of $n failed: $o" -ForegroundColor Red; exit 1 } else { Write-Host "$n created ($ExtraType)" }
+      }
+      Step "Waiting for the two brokers to join"
+      $deadline = (Get-Date).AddMinutes(15); $ready = @{}
+      while ((Get-Date) -lt $deadline -and $ready.Count -lt 2) {
+        Start-Sleep -Seconds 20
+        foreach ($i in 3, 4) { if (-not $ready[$i] -and (Serial "sfumato-kafka-$i") -match "KAFKA_READY") { $ready[$i] = $true; Write-Host "sfumato-kafka-$i ready" -ForegroundColor Green } }
+      }
+      if ($ready.Count -lt 2) { Write-Host "brokers not ready after 15 minutes" -ForegroundColor Red; exit 1 }
+      Step "Spreading the partitions over brokers 1,2,3,4"
+      Write-Host (Rebalance "1,2,3,4")
+    } else {
+      Step "Moving the partitions back to brokers 1,2"
+      Write-Host (Rebalance "1,2")
+      foreach ($i in 3, 4) { $n = "sfumato-kafka-$i"; Write-Host (G compute instances stop $n "--zone=$Zone" "--project=$Project") }
+      Write-Host "Brokers 3 and 4 stopped (disks kept: they rejoin with add-brokers)." -ForegroundColor Green
+    }
+  }
   "refresh" {
     $startup = Join-Path $root "deploy\stream\kafka-startup.sh"
     foreach ($i in 1..3) {
@@ -126,7 +217,7 @@ switch ($Action) {
     Write-Host "App version $sha uploaded. The VMs install it within a minute (first install: pip, 2 to 4 minutes)." -ForegroundColor Green
   }
   { $_ -in "run", "halt" } {
-    $roles = if ($Action -eq "run") { @{ 1 = "producer,scorer,cve-bridge,controller"; 2 = "scorer,cve-consumer"; 3 = "scorer" } } else { @{ 1 = ""; 2 = ""; 3 = "" } }
+    $roles = if ($Action -eq "run") { @{ 1 = "producer,scorer,cve-bridge,controller"; 2 = "scorer,cve-consumer"; 3 = "scorer"; 4 = "scorer" } } else { @{ 1 = ""; 2 = ""; 3 = ""; 4 = "" } }
     # shared secret between the dashboard backend and the stress controller (internal network only); kept in secrets/, git-ignored
     $tokFile = Join-Path $root "secrets\stream-control-token.txt"
     if (-not (Test-Path $tokFile)) {
@@ -143,8 +234,8 @@ switch ($Action) {
       $lines += "LOGSTASH_TOKEN=$($es['logship_token'])"
     }
     $envText = ($lines -join "`n")
-    foreach ($i in 1..3) {
-      $n = "sfumato-kafka-$i"
+    foreach ($n in $names) {
+      $i = [int]($n -replace "^sfumato-kafka-", "")
       $mdir = Join-Path ([IO.Path]::GetTempPath()) "sfumato-kafka-meta-$i"
       New-Item -ItemType Directory -Force $mdir | Out-Null
       $fr = Join-Path $mdir "stream-roles"; [IO.File]::WriteAllText($fr, $roles[$i])
