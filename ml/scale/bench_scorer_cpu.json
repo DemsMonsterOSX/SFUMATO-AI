@@ -1,0 +1,8 @@
+{
+ "_note": "Micro-benchmark of the scorer model alone (HistGradientBoostingClassifier predict_proba on batches of 500 rows, 60,000 rows, same model_known.joblib, same Python 3.11 and requirements, one run each, 26 Nov 2026). It measures the model only, NOT the whole scorer: the real scorer reaches about 9,500 flows/s per process, so its limit is the Python work around the model (JSON parsing, building rows, sending alerts). Do not read x2.9 as the end-to-end gain.",
+ "machines": [
+  {"vm": "sfumato-kafka-1", "type": "e2-standard-4", "cpu": "AMD EPYC 7B12", "vcpus": 4, "rows_per_s_1_thread": 73404, "rows_per_s_all_threads": 78158},
+  {"vm": "sfumato-c4-probe", "type": "c4-standard-8", "cpu": "Intel Xeon Platinum 8581C (Emerald Rapids) 2.3 GHz", "vcpus": 8, "rows_per_s_1_thread": 216185, "rows_per_s_all_threads": 214198}
+ ],
+ "ratio_single_thread_c4_over_e2": 2.95
+}

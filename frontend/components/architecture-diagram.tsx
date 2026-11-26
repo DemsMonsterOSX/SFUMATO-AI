@@ -23,6 +23,8 @@ export function buildDiagram(states: Record<string, NodeState>, labels: Labels):
     k1["<b>kafka-1</b><br/>${L("k1", "broker + stress test")}<br/><i>producteur · contrôleur</i>"]:::${cls("k1")}
     k2["<b>kafka-2</b><br/>${L("k2", "broker")}<br/><i>scorer · CVE</i>"]:::${cls("k2")}
     k3["<b>kafka-3</b><br/>${L("k3", "broker")}<br/><i>scorer</i>"]:::${cls("k3")}
+    sc1["<b>scorer-1</b><br/>${L("sc1", "auto")}<br/><i>autoscalé · Spot</i>"]:::${cls("sc1")}
+    sc2["<b>scorer-2</b><br/>${L("sc2", "auto")}<br/><i>autoscalé · Spot</i>"]:::${cls("sc2")}
     flink["<b>sfumato-flink</b><br/>${L("flink", "Flink")}<br/><i>2 jobs SQL</i>"]:::${cls("flink")}
   end
 
@@ -59,6 +61,10 @@ export function buildDiagram(states: Record<string, NodeState>, labels: Labels):
   k1 ---|réplication x3| k2
   k2 --- k3
   k3 --- k1
+  k1 -.->|retard élevé : démarre| sc1
+  k1 -.->|retard élevé : démarre| sc2
+  sc1 -->|partitions| k2
+  sc2 -->|partitions| k3
   k1 -->|conn-events| flink
   flink -->|alertes| k3
   bucket <-->|lecture, écriture| spark

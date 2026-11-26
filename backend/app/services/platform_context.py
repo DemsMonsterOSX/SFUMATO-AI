@@ -25,6 +25,8 @@ ARCHITECTURE = [
     {"name": "sfumato-kafka-1", "target": "e2-standard-4", "role": "Kafka broker 1 and stress-test host: flow producer, scorer, CVE bridge, stress-test controller"},
     {"name": "sfumato-kafka-2", "target": "e2-standard-2", "role": "Kafka broker 2: scorer and CVE consumer"},
     {"name": "sfumato-kafka-3", "target": "e2-standard-2", "role": "Kafka broker 3: scorer"},
+    {"name": "sfumato-scorer-1", "target": "e2-standard-4 (Spot, autoscaled)", "role": "autoscaled scorer worker: started by the controller when the Kafka backlog stays high, stopped when it stays low"},
+    {"name": "sfumato-scorer-2", "target": "e2-standard-4 (Spot, autoscaled)", "role": "second autoscaled scorer worker (3 to 5 scorers in the consumer group)"},
     {"name": "sfumato-flink", "target": "e2-standard-4", "role": "Flink with both jobs: flow analytics over network-flows and the per-source rule over conn-events"},
     {"name": "sfumato-qwen-clone", "target": "g2-standard-4 + NVIDIA L4 (Spot)", "role": "Ollama with Qwen on the L4 GPU (24 GB), used by Da Vinci; replaced the T4 VM when no T4 was available"},
     {"name": "sfumato-elk", "target": "e2-standard-2", "role": "Elasticsearch and Logstash for the logs (no Kibana)"},

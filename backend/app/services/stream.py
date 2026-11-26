@@ -70,6 +70,10 @@ def overview() -> dict:
     if flink:
         flink["age_s"] = round(now - flink.get("updated_at", 0))
         flink["active"] = flink["age_s"] < 40
+    auto = docs.get("autoscale")
+    if auto:
+        auto["age_s"] = round(now - auto.get("updated_at", 0))
+        auto["active"] = auto["age_s"] < 40
     active = any(v["active"] for v in scorers + producers)
     cm = {"tp": 0, "fp": 0, "fn": 0, "tn": 0}
     per_label: dict[str, dict] = {}
@@ -81,7 +85,7 @@ def overview() -> dict:
             d["flows"] += v["flows"]
             d["flagged"] += v["flagged"]
     tp, fp, fn = cm["tp"], cm["fp"], cm["fn"]
-    return {"active": active, "live_available": bool(docs), "scorers": scorers, "producers": producers, "cve_consumer": cve_c, "cve_bridge": cve_b, "flink": flink,
+    return {"active": active, "live_available": bool(docs), "scorers": scorers, "producers": producers, "cve_consumer": cve_c, "cve_bridge": cve_b, "flink": flink, "autoscale": auto,
             "totals": {"confusion": cm, "precision": tp / (tp + fp) if tp + fp else None, "recall": tp / (tp + fn) if tp + fn else None,
                        "consumed": sum(s.get("consumed", 0) for s in scorers), "throughput_per_s": round(sum(s["throughput_per_s"] for s in scorers if s["active"]), 1),
                        "per_label": per_label},

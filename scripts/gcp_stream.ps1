@@ -111,7 +111,7 @@ switch ($Action) {
     New-Item -ItemType Directory $stage | Out-Null
     $tgz = Join-Path $stage "app.tgz"
     $src = Join-Path $root "streaming"
-    tar -czf $tgz -C $src common.py producer.py scorer.py cve_bridge.py cve_consumer.py controller.py stress_producer.py flink_state.py logship.py requirements.txt
+    tar -czf $tgz -C $src common.py producer.py scorer.py cve_bridge.py cve_consumer.py controller.py autoscaler.py stress_producer.py flink_state.py logship.py requirements.txt
     $sha = (Get-FileHash $tgz -Algorithm SHA256).Hash.ToLower()
     $req = (Get-FileHash (Join-Path $src "requirements.txt") -Algorithm SHA256).Hash.ToLower()
     $man = Join-Path $stage "manifest.json"
@@ -135,7 +135,7 @@ switch ($Action) {
       Set-Content -Path $tokFile -Value (($bytes | ForEach-Object { $_.ToString("x2") }) -join "") -Encoding ASCII
     }
     $ctoken = (Get-Content $tokFile -Raw).Trim()
-    $lines = @("SCENARIO=$Scenario", "RATE=$Rate", "THRESHOLD=0.5", "CONTROL_TOKEN=$ctoken")
+    $lines = @("SCENARIO=$Scenario", "RATE=$Rate", "THRESHOLD=0.5", "CONTROL_TOKEN=$ctoken", "AUTOSCALE=1")
     $elk = Join-Path $root "secrets\elk-secrets.txt"
     if (Test-Path $elk) {   # ship the application logs to Logstash when the log VM has been created
       $es = @{}; Get-Content $elk | ForEach-Object { $k, $v = $_ -split "=", 2; $es[$k] = $v }
@@ -149,6 +149,17 @@ switch ($Action) {
       New-Item -ItemType Directory -Force $mdir | Out-Null
       $fr = Join-Path $mdir "stream-roles"; [IO.File]::WriteAllText($fr, $roles[$i])
       $fe = Join-Path $mdir "stream-env"; [IO.File]::WriteAllText($fe, $envText)
+      Write-Host (G compute instances add-metadata $n "--zone=$Zone" "--project=$Project" "--metadata-from-file=stream-roles=$fr,stream-env=$fe")
+    }
+    # autoscaled scorer workers (scripts\gcp_autoscale.ps1): same scenario, scorer role only, no control token
+    $workerEnv = (($lines | Where-Object { $_ -notmatch '^(CONTROL_TOKEN|AUTOSCALE|LOGSTASH_TOKEN)=' }) -join "`n")
+    foreach ($n in "sfumato-scorer-1", "sfumato-scorer-2") {
+      $null = G compute instances describe $n "--zone=$Zone" "--project=$Project"
+      if ($rc -ne 0) { continue }
+      $mdir = Join-Path ([IO.Path]::GetTempPath()) "sfumato-$n-meta"
+      New-Item -ItemType Directory -Force $mdir | Out-Null
+      $fr = Join-Path $mdir "stream-roles"; [IO.File]::WriteAllText($fr, $(if ($Action -eq "run") { "scorer" } else { "" }))
+      $fe = Join-Path $mdir "stream-env"; [IO.File]::WriteAllText($fe, $workerEnv)
       Write-Host (G compute instances add-metadata $n "--zone=$Zone" "--project=$Project" "--metadata-from-file=stream-roles=$fr,stream-env=$fe")
     }
     if ($Action -eq "run") { Write-Host "Streaming started: scenario=$Scenario, $Rate flows/s. The VMs apply it within a minute." -ForegroundColor Green } else { Write-Host "Streaming applications stopped." -ForegroundColor Green }

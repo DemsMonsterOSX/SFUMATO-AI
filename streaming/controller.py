@@ -49,9 +49,12 @@ def offsets(group: str):
         cons.close()
 
 
+SCORER_HOSTS = ("sfumato-kafka-1", "sfumato-kafka-2", "sfumato-kafka-3", "sfumato-scorer-1", "sfumato-scorer-2")   # the last two are the autoscaled workers
+
+
 def scorer_p95() -> float | None:
     vals = []
-    for h in ("sfumato-kafka-1", "sfumato-kafka-2", "sfumato-kafka-3"):
+    for h in SCORER_HOSTS:
         d = c.read_json(f"stream/state/scorer-{h}.json")
         if d and time.time() - d.get("updated_at", 0) < 30 and d["latency_ms"]["p95"] is not None:
             vals.append(d["latency_ms"]["p95"])
@@ -60,7 +63,7 @@ def scorer_p95() -> float | None:
 
 def active_scorers() -> int:
     n = 0
-    for h in ("sfumato-kafka-1", "sfumato-kafka-2", "sfumato-kafka-3"):
+    for h in SCORER_HOSTS:
         d = c.read_json(f"stream/state/scorer-{h}.json")
         if d and time.time() - d.get("updated_at", 0) < 30:
             n += 1
@@ -199,6 +202,11 @@ def main() -> None:
     if last:
         state.clear()
         state.update(last)
+    if os.environ.get("AUTOSCALE", "0") == "1":
+        import autoscaler
+        group = f"scorers-{c.SCENARIO}"
+        threading.Thread(target=autoscaler.loop, args=(lambda: offsets(group)[2], c.log, c.write_state), daemon=True, name="autoscaler").start()
+        c.log(f"autoscaler on: workers {autoscaler.WORKERS}, out at lag {autoscaler.OUT_LAG}, in at lag {autoscaler.IN_LAG}")
     srv = ThreadingHTTPServer(("0.0.0.0", PORT), H)
     c.log(f"stress controller on :{PORT}")
     srv.serve_forever()

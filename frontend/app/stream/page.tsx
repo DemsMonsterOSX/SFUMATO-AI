@@ -18,7 +18,11 @@ type Scenario = { description: string; flows_scored: number; confusion: Cm; prec
 type FlinkWin = { window_start: string; window_end: string; flows: number; attack_flows: number; distinct_dst_ports: number; avg_duration_us: number | null; syn_flows: number };
 type FlinkAlert = { window_start: string; dst_port: number; flows: number; attack_flows: number; avg_duration_us: number | null; rule: string };
 type Flink = { windows: FlinkWin[]; alerts: FlinkAlert[]; windows_seen: number; alerts_by_rule: Record<string, number>; alert_flows: number; alert_attack_share: number | null; age_s: number; active: boolean };
+type Autoscale = { enabled: boolean; active: boolean; age_s: number; lag: number; workers: Record<string, string>; min_scorers: number; max_scorers: number;
+  policy: { out_lag: number; in_lag: number; out_hold_s: number; in_hold_s: number; cooldown_s: number };
+  events: { at: number; action: string; vm: string; lag: number }[] };
 type Overview = {
+  autoscale?: Autoscale | null;
   flink?: Flink | null;
   active: boolean; live_available: boolean; scorers: Scorer[]; producers: Producer[];
   cve_consumer: { events_consumed: number; counts: Record<string, number>; recent: { type: string; id: string; severity: string | null; kev: boolean }[] } | null;
@@ -148,6 +152,34 @@ function FlinkCard({ f }: { f: Flink }) {
   );
 }
 
+/** Autoscaling of the scorer tier: two worker VMs are started when the backlog stays high and stopped when it stays low. */
+function AutoscaleCard({ a, scorers }: { a: Autoscale; scorers: Scorer[] }) {
+  const running = scorers.filter((s) => s.active).length;
+  const workers = Object.entries(a.workers);
+  return (
+    <Card className="mt-5">
+      <CardHeader title="Autoscaling of the scorers" subtitle={`${a.min_scorers} to ${a.max_scorers} scorers · two worker VMs start when the backlog stays high and stop when it stays low`} icon={<Gauge className="h-4 w-4" />} />
+      <div className="mt-3 grid grid-cols-2 gap-4 md:grid-cols-4">
+        <Stat label="Scorers running" value={<span className="text-2xl">{running} / {a.max_scorers}</span>} sub="members of the consumer group" icon={<Gauge className="h-4 w-4" />} />
+        <Stat label="Backlog (lag)" value={<span className="text-2xl">{n(a.lag)}</span>} sub="messages behind" accent={a.lag >= a.policy.out_lag ? "#f43f5e" : "#34d399"} icon={<Gauge className="h-4 w-4" />} />
+        <Stat label="Scale out at" value={<span className="text-2xl">{n(a.policy.out_lag)}</span>} sub={`for ${a.policy.out_hold_s} s`} accent="#fbbf24" icon={<Gauge className="h-4 w-4" />} />
+        <Stat label="Scale in below" value={<span className="text-2xl">{n(a.policy.in_lag)}</span>} sub={`for ${a.policy.in_hold_s / 60} min`} accent="#a78bfa" icon={<Gauge className="h-4 w-4" />} />
+      </div>
+      <div className="mt-4 flex flex-wrap items-center gap-2 text-xs">
+        {workers.map(([vm, st]) => <Badge key={vm} color={st === "RUNNING" ? "#34d399" : st === "TERMINATED" || st === "STOPPING" ? "#94a3b8" : "#fbbf24"}>{vm}: {st.toLowerCase()}</Badge>)}
+        {!a.active && <span className="text-amber-300">autoscaler state is {a.age_s} s old (streaming not running?)</span>}
+      </div>
+      {a.events.length > 0 && (
+        <ul className="mt-3 space-y-1 text-xs text-slate-300">
+          {a.events.slice().reverse().slice(0, 6).map((e, i) => (
+            <li key={i} className="font-mono">{new Date(e.at * 1000).toLocaleTimeString()} · {e.action === "scale_out" ? "start" : "stop"} {e.vm} · lag {n(e.lag)}</li>
+          ))}
+        </ul>
+      )}
+    </Card>
+  );
+}
+
 export default function StreamPage() {
   const { data, error } = useApi<Overview>("stream/overview", 5000);
   const r = data?.results;
@@ -176,6 +208,7 @@ export default function StreamPage() {
 
           {data.flink && <FlinkCard f={data.flink} />}
 
+          {data.autoscale && <AutoscaleCard a={data.autoscale} scorers={data.scorers} />}
           {data.live_available && data.scorers.length > 0 && (
             <Card className="mt-5">
               <CardHeader title="Live: consumer group" subtitle={data.active ? "Refreshed every 5 seconds from the streaming applications" : "Last published state (the applications are stopped)"} icon={<Activity className="h-4 w-4" />} />

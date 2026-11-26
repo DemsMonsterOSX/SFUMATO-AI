@@ -1,0 +1,480 @@
+{
+ "_note": "Autoscaling of the Kafka scorers on E2 VMs (Kafka e2-standard-4/2/2, scorers e2-standard-4 Spot, producers on one e2-standard-8). One run, 26 Nov 2026. Times are local (UTC+1). The producers could not exceed about 32,000 flows/s, so this run shows the mechanism (out and in) and the recovery, not the capacity of 4 or 5 scorers.",
+ "load": {
+  "target_per_s": 32000,
+  "seconds": 300,
+  "producer_processes": 8,
+  "messages_sent": 9569200,
+  "producer_errors": 0,
+  "avg_produced_per_s": 32198,
+  "avg_consumed_per_s": 32188
+ },
+ "lag": {
+  "peak": 62197,
+  "peak_at_s": 234,
+  "final": 181
+ },
+ "policy": {
+  "out_lag": 3000,
+  "in_lag": 300,
+  "out_hold_s": 20,
+  "in_hold_s": 240,
+  "cooldown_s": 90
+ },
+ "events": [
+  {
+   "time": "16:29:11",
+   "action": "scale_out",
+   "vm": "sfumato-scorer-1",
+   "lag": 13305
+  },
+  {
+   "time": "16:31:29",
+   "action": "scale_out",
+   "vm": "sfumato-scorer-2",
+   "lag": 23858
+  },
+  {
+   "time": "16:38:00",
+   "action": "scale_in",
+   "vm": "sfumato-scorer-2",
+   "lag": 140
+  },
+  {
+   "time": "16:42:14",
+   "action": "scale_in",
+   "vm": "sfumato-scorer-1",
+   "lag": 194
+  }
+ ],
+ "timeline": [
+  {
+   "t": 5,
+   "produced_per_s": 32720,
+   "consumed_per_s": 28583,
+   "lag": 21025,
+   "producing": true
+  },
+  {
+   "t": 10,
+   "produced_per_s": 32142,
+   "consumed_per_s": 31293,
+   "lag": 25337,
+   "producing": true
+  },
+  {
+   "t": 15,
+   "produced_per_s": 32063,
+   "consumed_per_s": 32395,
+   "lag": 23653,
+   "producing": true
+  },
+  {
+   "t": 20,
+   "produced_per_s": 32322,
+   "consumed_per_s": 33829,
+   "lag": 16034,
+   "producing": true
+  },
+  {
+   "t": 25,
+   "produced_per_s": 32152,
+   "consumed_per_s": 34581,
+   "lag": 3706,
+   "producing": true
+  },
+  {
+   "t": 30,
+   "produced_per_s": 32143,
+   "consumed_per_s": 30969,
+   "lag": 9658,
+   "producing": true
+  },
+  {
+   "t": 35,
+   "produced_per_s": 32094,
+   "consumed_per_s": 30659,
+   "lag": 16934,
+   "producing": true
+  },
+  {
+   "t": 41,
+   "produced_per_s": 32589,
+   "consumed_per_s": 34047,
+   "lag": 9566,
+   "producing": true
+  },
+  {
+   "t": 46,
+   "produced_per_s": 31770,
+   "consumed_per_s": 31876,
+   "lag": 9024,
+   "producing": true
+  },
+  {
+   "t": 51,
+   "produced_per_s": 32751,
+   "consumed_per_s": 33814,
+   "lag": 3663,
+   "producing": true
+  },
+  {
+   "t": 56,
+   "produced_per_s": 31601,
+   "consumed_per_s": 31842,
+   "lag": 2426,
+   "producing": true
+  },
+  {
+   "t": 61,
+   "produced_per_s": 32801,
+   "consumed_per_s": 31509,
+   "lag": 8946,
+   "producing": true
+  },
+  {
+   "t": 66,
+   "produced_per_s": 31904,
+   "consumed_per_s": 31273,
+   "lag": 12186,
+   "producing": true
+  },
+  {
+   "t": 71,
+   "produced_per_s": 32365,
+   "consumed_per_s": 34187,
+   "lag": 2916,
+   "producing": true
+  },
+  {
+   "t": 76,
+   "produced_per_s": 31820,
+   "consumed_per_s": 29915,
+   "lag": 12661,
+   "producing": true
+  },
+  {
+   "t": 81,
+   "produced_per_s": 32325,
+   "consumed_per_s": 31844,
+   "lag": 15095,
+   "producing": true
+  },
+  {
+   "t": 86,
+   "produced_per_s": 32319,
+   "consumed_per_s": 31546,
+   "lag": 19026,
+   "producing": true
+  },
+  {
+   "t": 91,
+   "produced_per_s": 32385,
+   "consumed_per_s": 32925,
+   "lag": 16279,
+   "producing": true
+  },
+  {
+   "t": 97,
+   "produced_per_s": 32077,
+   "consumed_per_s": 31534,
+   "lag": 19059,
+   "producing": true
+  },
+  {
+   "t": 102,
+   "produced_per_s": 32317,
+   "consumed_per_s": 34840,
+   "lag": 6203,
+   "producing": true
+  },
+  {
+   "t": 107,
+   "produced_per_s": 31892,
+   "consumed_per_s": 32514,
+   "lag": 3019,
+   "producing": true
+  },
+  {
+   "t": 112,
+   "produced_per_s": 32198,
+   "consumed_per_s": 32160,
+   "lag": 3211,
+   "producing": true
+  },
+  {
+   "t": 117,
+   "produced_per_s": 32186,
+   "consumed_per_s": 30843,
+   "lag": 10028,
+   "producing": true
+  },
+  {
+   "t": 122,
+   "produced_per_s": 32116,
+   "consumed_per_s": 33179,
+   "lag": 4633,
+   "producing": true
+  },
+  {
+   "t": 127,
+   "produced_per_s": 32249,
+   "consumed_per_s": 32606,
+   "lag": 2830,
+   "producing": true
+  },
+  {
+   "t": 132,
+   "produced_per_s": 32126,
+   "consumed_per_s": 32105,
+   "lag": 2936,
+   "producing": true
+  },
+  {
+   "t": 137,
+   "produced_per_s": 32438,
+   "consumed_per_s": 32301,
+   "lag": 3629,
+   "producing": true
+  },
+  {
+   "t": 142,
+   "produced_per_s": 31897,
+   "consumed_per_s": 32004,
+   "lag": 3083,
+   "producing": true
+  },
+  {
+   "t": 147,
+   "produced_per_s": 32228,
+   "consumed_per_s": 29308,
+   "lag": 17830,
+   "producing": true
+  },
+  {
+   "t": 152,
+   "produced_per_s": 32219,
+   "consumed_per_s": 31699,
+   "lag": 20471,
+   "producing": true
+  },
+  {
+   "t": 157,
+   "produced_per_s": 32078,
+   "consumed_per_s": 31717,
+   "lag": 22304,
+   "producing": true
+  },
+  {
+   "t": 163,
+   "produced_per_s": 32320,
+   "consumed_per_s": 31609,
+   "lag": 25901,
+   "producing": true
+  },
+  {
+   "t": 168,
+   "produced_per_s": 32444,
+   "consumed_per_s": 32692,
+   "lag": 24645,
+   "producing": true
+  },
+  {
+   "t": 173,
+   "produced_per_s": 32250,
+   "consumed_per_s": 32403,
+   "lag": 23865,
+   "producing": true
+  },
+  {
+   "t": 178,
+   "produced_per_s": 32181,
+   "consumed_per_s": 29806,
+   "lag": 36019,
+   "producing": true
+  },
+  {
+   "t": 183,
+   "produced_per_s": 31958,
+   "consumed_per_s": 32719,
+   "lag": 32121,
+   "producing": true
+  },
+  {
+   "t": 188,
+   "produced_per_s": 32081,
+   "consumed_per_s": 31657,
+   "lag": 34276,
+   "producing": true
+  },
+  {
+   "t": 193,
+   "produced_per_s": 32376,
+   "consumed_per_s": 32203,
+   "lag": 35149,
+   "producing": true
+  },
+  {
+   "t": 198,
+   "produced_per_s": 32121,
+   "consumed_per_s": 32765,
+   "lag": 31879,
+   "producing": true
+  },
+  {
+   "t": 203,
+   "produced_per_s": 32208,
+   "consumed_per_s": 32351,
+   "lag": 31157,
+   "producing": true
+  },
+  {
+   "t": 208,
+   "produced_per_s": 32049,
+   "consumed_per_s": 29154,
+   "lag": 45852,
+   "producing": true
+  },
+  {
+   "t": 213,
+   "produced_per_s": 32574,
+   "consumed_per_s": 32592,
+   "lag": 45765,
+   "producing": true
+  },
+  {
+   "t": 218,
+   "produced_per_s": 31942,
+   "consumed_per_s": 31064,
+   "lag": 50257,
+   "producing": true
+  },
+  {
+   "t": 224,
+   "produced_per_s": 32646,
+   "consumed_per_s": 31815,
+   "lag": 54472,
+   "producing": true
+  },
+  {
+   "t": 229,
+   "produced_per_s": 31875,
+   "consumed_per_s": 31782,
+   "lag": 54949,
+   "producing": true
+  },
+  {
+   "t": 234,
+   "produced_per_s": 32217,
+   "consumed_per_s": 30795,
+   "lag": 62197,
+   "producing": true
+  },
+  {
+   "t": 239,
+   "produced_per_s": 32015,
+   "consumed_per_s": 43682,
+   "lag": 2770,
+   "producing": true
+  },
+  {
+   "t": 244,
+   "produced_per_s": 32183,
+   "consumed_per_s": 30672,
+   "lag": 10405,
+   "producing": true
+  },
+  {
+   "t": 249,
+   "produced_per_s": 32077,
+   "consumed_per_s": 33351,
+   "lag": 3928,
+   "producing": true
+  },
+  {
+   "t": 254,
+   "produced_per_s": 32379,
+   "consumed_per_s": 32296,
+   "lag": 4348,
+   "producing": true
+  },
+  {
+   "t": 259,
+   "produced_per_s": 32091,
+   "consumed_per_s": 31017,
+   "lag": 9818,
+   "producing": true
+  },
+  {
+   "t": 264,
+   "produced_per_s": 32574,
+   "consumed_per_s": 33825,
+   "lag": 3475,
+   "producing": true
+  },
+  {
+   "t": 269,
+   "produced_per_s": 31793,
+   "consumed_per_s": 31694,
+   "lag": 3982,
+   "producing": true
+  },
+  {
+   "t": 274,
+   "produced_per_s": 32354,
+   "consumed_per_s": 32275,
+   "lag": 4381,
+   "producing": true
+  },
+  {
+   "t": 280,
+   "produced_per_s": 32450,
+   "consumed_per_s": 32044,
+   "lag": 6451,
+   "producing": true
+  },
+  {
+   "t": 285,
+   "produced_per_s": 32049,
+   "consumed_per_s": 32079,
+   "lag": 6296,
+   "producing": true
+  },
+  {
+   "t": 290,
+   "produced_per_s": 31970,
+   "consumed_per_s": 31722,
+   "lag": 7569,
+   "producing": true
+  },
+  {
+   "t": 295,
+   "produced_per_s": 32324,
+   "consumed_per_s": 32905,
+   "lag": 4621,
+   "producing": true
+  },
+  {
+   "t": 300,
+   "produced_per_s": 31903,
+   "consumed_per_s": 32243,
+   "lag": 2883,
+   "producing": true
+  },
+  {
+   "t": 305,
+   "produced_per_s": 290,
+   "consumed_per_s": 805,
+   "lag": 266,
+   "producing": false
+  },
+  {
+   "t": 310,
+   "produced_per_s": 306,
+   "consumed_per_s": 323,
+   "lag": 181,
+   "producing": false
+  }
+ ],
+ "measured_at": "2026-11-26T15:34:00"
+}
